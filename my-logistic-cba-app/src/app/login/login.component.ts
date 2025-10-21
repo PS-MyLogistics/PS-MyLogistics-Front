@@ -1,7 +1,8 @@
-// login.component.ts
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { AuthService, LoginRequest } from '../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -18,7 +19,7 @@ import { FormsModule } from '@angular/forms';
                 <!-- Logo redondo -->
                 <div class="logo-circle mx-auto mb-3">
                   <!-- Reemplaza con tu imagen: <img src="assets/logo.png" alt="Logo" class="logo-img rounded-circle" /> -->
-                  <img src="logo.png" alt="Logo" class="logo-img rounded-circle" />
+                    <img src="logo.png" alt="Logo" class="logo-img rounded-circle" />
                 </div>
                 <h2 class="mb-1 fw-bold">My Logistic</h2>
                 <p class="mb-0 text-white-50">Ingresa a tu cuenta</p>
@@ -26,22 +27,55 @@ import { FormsModule } from '@angular/forms';
 
               <!-- Body -->
               <div class="card-body p-4">
-                <!-- Email -->
+                <!-- Alertas -->
+                <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+                  <strong>Error:</strong> {{ errorMessage }}
+                  <button type="button" class="btn-close" (click)="errorMessage = ''" aria-label="Close"></button>
+                </div>
+
+                <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show" role="alert">
+                  {{ successMessage }}
+                  <button type="button" class="btn-close" (click)="successMessage = ''" aria-label="Close"></button>
+                </div>
+
+                <!-- Nombre del Tenant -->
                 <div class="mb-3">
-                  <label for="email" class="form-label fw-semibold">Correo Electrónico</label>
+                  <label for="tenantName" class="form-label fw-semibold">Empresa / Tenant</label>
                   <div class="input-group">
                     <span class="input-group-text bg-white">
                       <svg class="icon-input" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                       </svg>
                     </span>
                     <input
-                      type="email"
+                      type="text"
                       class="form-control"
-                      id="email"
-                      [(ngModel)]="email"
-                      placeholder="usuario@empresa.com"
+                      id="tenantName"
+                      [(ngModel)]="tenantName"
+                      placeholder="nombre-empresa"
                       required
+                      [disabled]="isLoading"
+                    />
+                  </div>
+                </div>
+
+                <!-- Usuario -->
+                <div class="mb-3">
+                  <label for="username" class="form-label fw-semibold">Usuario</label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white">
+                      <svg class="icon-input" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                      </svg>
+                    </span>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="username"
+                      [(ngModel)]="username"
+                      placeholder="tu_usuario"
+                      required
+                      [disabled]="isLoading"
                     />
                   </div>
                 </div>
@@ -62,11 +96,13 @@ import { FormsModule } from '@angular/forms';
                       [(ngModel)]="password"
                       placeholder="••••••••"
                       required
+                      [disabled]="isLoading"
                     />
                     <button
                       class="btn btn-outline-secondary"
                       type="button"
                       (click)="togglePassword()"
+                      [disabled]="isLoading"
                     >
                       <svg *ngIf="!showPassword" class="icon-input" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -87,6 +123,7 @@ import { FormsModule } from '@angular/forms';
                       type="checkbox"
                       id="rememberMe"
                       [(ngModel)]="rememberMe"
+                      [disabled]="isLoading"
                     />
                     <label class="form-check-label" for="rememberMe">
                       Recordarme
@@ -96,6 +133,7 @@ import { FormsModule } from '@angular/forms';
                     type="button"
                     class="btn btn-link p-0 text-decoration-none"
                     (click)="forgotPassword()"
+                    [disabled]="isLoading"
                   >
                     ¿Olvidaste tu contraseña?
                   </button>
@@ -106,8 +144,13 @@ import { FormsModule } from '@angular/forms';
                   type="button"
                   class="btn btn-primary btn-lg w-100 mb-3 btn-gradient"
                   (click)="onSubmit()"
+                  [disabled]="isLoading || !tenantName || !username || !password"
                 >
-                  Iniciar Sesión
+                  <span *ngIf="!isLoading">Iniciar Sesión</span>
+                  <span *ngIf="isLoading">
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Iniciando sesión...
+                  </span>
                 </button>
 
                 <!-- Registro -->
@@ -117,6 +160,7 @@ import { FormsModule } from '@angular/forms';
                     type="button"
                     class="btn btn-link p-0 text-decoration-none"
                     (click)="goToRegister()"
+                    [disabled]="isLoading"
                   >
                     Regístrate aquí
                   </button>
@@ -125,7 +169,7 @@ import { FormsModule } from '@angular/forms';
 
               <!-- Footer -->
               <div class="card-footer text-center bg-light text-muted py-3">
-                <small>© 2025 My Logistics. Todos los derechos reservados.</small>
+                <small>© 2025 My Logistic. Todos los derechos reservados.</small>
               </div>
             </div>
           </div>
@@ -226,14 +270,19 @@ import { FormsModule } from '@angular/forms';
       transition: all 0.3s ease;
     }
 
-    .btn-gradient:hover {
+    .btn-gradient:hover:not(:disabled) {
       background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
     }
 
-    .btn-gradient:active {
+    .btn-gradient:active:not(:disabled) {
       transform: translateY(0);
+    }
+
+    .btn-gradient:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .btn-link {
@@ -241,7 +290,7 @@ import { FormsModule } from '@angular/forms';
       font-weight: 600;
     }
 
-    .btn-link:hover {
+    .btn-link:hover:not(:disabled) {
       color: #1d4ed8;
     }
 
@@ -258,84 +307,138 @@ import { FormsModule } from '@angular/forms';
       box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
     }
 
+    .alert {
+      font-size: 0.9rem;
+    }
+
     @media (max-width: 576px) {
       .card-body {
         padding: 1.5rem !important;
       }
 
       .logo-circle {
-        width: 180px;
-        height: 180px;
+        width: 200px;
+        height: 200px;
       }
 
       .logo-icon {
-        width: 140px;
-        height: 140px;
+        width: 100px;
+        height: 100px;
       }
 
       .logo-img {
-        width: 170px;
-        height: 170px;
+        width: 180px;
+        height: 180px;
       }
     }
   `]
 })
 export class LoginComponent {
-  email: string = '';
+  private authService = inject(AuthService);
+  private router = inject(Router);
+
+  tenantName: string = '';
+  username: string = '';
   password: string = '';
   showPassword: boolean = false;
   rememberMe: boolean = false;
+  isLoading: boolean = false;
+  errorMessage: string = '';
+  successMessage: string = '';
 
   togglePassword(): void {
     this.showPassword = !this.showPassword;
   }
 
   onSubmit(): void {
-    console.log('Login attempt:', {
-      email: this.email,
+    // Validaciones
+    if (!this.tenantName || !this.username || !this.password) {
+      this.errorMessage = 'Por favor completa todos los campos';
+      return;
+    }
+
+    this.isLoading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+
+    const loginRequest: LoginRequest = {
+      username: this.username,
       password: this.password,
-      rememberMe: this.rememberMe
+      tenantName: this.tenantName
+    };
+
+    this.authService.login(loginRequest).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        
+        if (response.success) {
+          this.successMessage = 'Inicio de sesión exitoso. Redirigiendo...';
+          
+          // Guardar tenantName si "Recordarme" está activo
+          if (this.rememberMe) {
+            localStorage.setItem('tenantName', this.tenantName);
+            localStorage.setItem('username', this.username);
+          }
+          
+          // Redirigir al dashboard después de 1 segundo
+          setTimeout(() => {
+            this.router.navigate(['/dashboard']);
+          }, 1000);
+        } else {
+          this.errorMessage = response.message || 'Error al iniciar sesión';
+        }
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.errorMessage = error.message || 'Error de conexión. Verifica tus credenciales.';
+      }
     });
-    
-    alert('Funcionalidad de login - Conectar con tu backend/servicio de autenticación');
   }
 
   forgotPassword(): void {
-    console.log('Forgot password clicked');
+    if (!this.tenantName || !this.username) {
+      this.errorMessage = 'Por favor ingresa tu empresa/tenant y usuario para recuperar tu contraseña';
+      return;
+    }
+
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    // Primero obtener el email enmascarado
+    this.authService.getMaskedEmail(this.username, this.tenantName).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        if (response.success) {
+          // Navegar a página de recuperación de contraseña con el email enmascarado
+          this.router.navigate(['/reset-password'], {
+            queryParams: {
+              username: this.username,
+              tenantName: this.tenantName,
+              maskedEmail: response.mailEncoded
+            }
+          });
+        }
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.errorMessage = error.message || 'No se pudo recuperar la información del usuario';
+      }
+    });
   }
 
   goToRegister(): void {
-    console.log('Register clicked');
+    this.router.navigate(['/register']);
+  }
+
+  ngOnInit(): void {
+    // Cargar datos guardados si existen
+    const savedTenant = localStorage.getItem('tenantName');
+    const savedUsername = localStorage.getItem('username');
+    
+    if (savedTenant && savedUsername) {
+      this.tenantName = savedTenant;
+      this.username = savedUsername;
+      this.rememberMe = true;
+    }
   }
 }
-
-
-/* 
-INSTRUCCIONES DE USO CON BOOTSTRAP:
-
-1. IMPORTANTE: Debes tener Bootstrap instalado en tu proyecto Angular.
-   Si no lo tienes, instálalo con:
-   npm install bootstrap
-
-2. Agrega Bootstrap en tu angular.json:
-   "styles": [
-     "node_modules/bootstrap/dist/css/bootstrap.min.css",
-     "src/styles.css"
-   ]
-
-3. Para agregar tu logo REDONDO:
-   Reemplaza las líneas 17-22 con:
-   <img src="assets/logo.png" alt="Logo" class="logo-img rounded-circle" />
-
-   NOTA: La clase "rounded-circle" de Bootstrap hace la imagen redonda
-
-4. La imagen se verá redonda automáticamente gracias a:
-   - .logo-circle (contenedor circular)
-   - .logo-img con rounded-circle de Bootstrap
-   - object-fit: cover (para que la imagen no se deforme)
-
-5. Para usar el componente:
-   - Copia este código en: src/app/login/login.component.ts
-   - Importa en tu routing
-   - ¡Listo!
-*/
