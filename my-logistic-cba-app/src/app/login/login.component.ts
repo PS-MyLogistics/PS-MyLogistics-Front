@@ -21,8 +21,7 @@ import { AuthService, LoginRequest } from '../services/auth.service';
                   <!-- Reemplaza con tu imagen: <img src="assets/logo.png" alt="Logo" class="logo-img rounded-circle" /> -->
                     <img src="logo.png" alt="Logo" class="logo-img rounded-circle" />
                 </div>
-                <h2 class="mb-1 fw-bold">My Logistic</h2>
-                <p class="mb-0 text-white-50">Ingresa a tu cuenta</p>
+                <h5 class="text-black">Ingresa a tu cuenta</h5>
               </div>
 
               <!-- Body -->

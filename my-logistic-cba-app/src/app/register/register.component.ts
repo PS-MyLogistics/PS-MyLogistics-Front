@@ -18,10 +18,8 @@ import { AuthService, RegisterOwnerRequest } from '../services/auth.service';
               <div class="card-header bg-gradient text-white text-center py-4">
                 <div class="logo-circle-small mx-auto mb-3">
                   <img src="logo.png" alt="Logo" class="logo-img rounded-circle" />
-
                 </div>
-                <h2 class="mb-1 fw-bold">Registro My Logistic</h2>
-                <p class="mb-0 text-white-50">Crea tu cuenta y empresa</p>
+                <h5 class="text-black">Crea tu cuenta y empresa</h5>
               </div>
 
               <!-- Body -->

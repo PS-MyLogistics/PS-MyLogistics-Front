@@ -8,31 +8,13 @@ import { NuevoPedidoPageComponent } from './dashboard/pages/nuevo-pedido-page/nu
 import { UsuariosPageComponent } from './dashboard/pages/usuarios-page/usuarios-page.component';
 import { MapaPageComponent } from './dashboard/pages/mapa-page/mapa-page.component';
 
-// export const routes: Routes = [
-//   { path: 'login', component: LoginComponent },
-//   { path: 'register', component: RegisterComponent },
-//   {
-//     path: 'dashboard',
-//     component: DashboardComponent,
-//     children: [  // ← Las páginas son HIJAS del dashboard
-//       { path: '', component: HomePageComponent },
-//       { path: 'pedidos', component: PedidosPageComponent },
-//       { path: 'usuarios', component: UsuariosPageComponent },
-//       { path: 'mapa', component: MapaPageComponent }
-//     ]
-//   },
-//   { path: '', redirectTo: '/login', pathMatch: 'full' },
-//   { path: '**', redirectTo: '/login' }
-// ];
-
-
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
   {
     path: 'dashboard',
     component: DashboardComponent,
-    children: [
+    children: [  // ← Las páginas son HIJAS del dashboard
       { path: '', component: HomePageComponent },
       { path: 'pedidos', component: PedidosPageComponent },
       { path: 'pedidos/nuevo', component: NuevoPedidoPageComponent },
@@ -40,6 +22,25 @@ export const routes: Routes = [
       { path: 'mapa', component: MapaPageComponent }
     ]
   },
-  { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
-  { path: '**', redirectTo: '/dashboard' }
+  { path: '', redirectTo: '/login', pathMatch: 'full' },
+  { path: '**', redirectTo: '/login' }
 ];
+
+// //Para pruebas del front
+// export const routes: Routes = [
+//   { path: 'login', component: LoginComponent },
+//   { path: 'register', component: RegisterComponent },
+//   {
+//     path: 'dashboard',
+//     component: DashboardComponent,
+//     children: [
+//       { path: '', component: HomePageComponent },
+//       { path: 'pedidos', component: PedidosPageComponent },
+//       { path: 'pedidos/nuevo', component: NuevoPedidoPageComponent },
+//       { path: 'usuarios', component: UsuariosPageComponent },
+//       { path: 'mapa', component: MapaPageComponent }
+//     ]
+//   },
+//   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
+//   { path: '**', redirectTo: '/dashboard' }
+// ];
