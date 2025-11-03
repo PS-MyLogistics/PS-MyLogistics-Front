@@ -1,7 +1,10 @@
-import { Component } from '@angular/core';
+// nuevo-pedido-page.component.ts - VERSIÓN CORREGIDA
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { PedidosService } from '../../../services/pedidos.service';
+import { RepartidoresService } from '../../../services/repartidores.service';
 
 interface Producto {
   id: number;
@@ -33,6 +36,18 @@ interface Producto {
           </h4>
           <p class="mb-0">Completa la información del pedido</p>
         </div>
+      </div>
+
+      <!-- Alerta de éxito -->
+      <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show mb-3">
+        {{ successMessage }}
+        <button type="button" class="btn-close" (click)="successMessage = ''"></button>
+      </div>
+
+      <!-- Alerta de error -->
+      <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show mb-3">
+        {{ errorMessage }}
+        <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
       </div>
 
       <!-- Sección Dirección de Entrega (Azul claro) -->
@@ -68,18 +83,10 @@ interface Producto {
           <h6>Información del Cliente</h6>
         </div>
         <div class="section-body">
-          <div class="empty-state" *ngIf="!pedido.cliente">
-            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-            </svg>
-            <p class="mt-3 mb-2">Ingrese una dirección para buscar clientes existentes</p>
-            <p class="text-muted small">o crear un nuevo cliente</p>
-          </div>
-          
-          <div *ngIf="pedido.cliente" class="client-info">
+          <div class="client-info">
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label-custom">Nombre del Cliente</label>
+                <label class="form-label-custom">Nombre del Cliente <span class="text-danger">*</span></label>
                 <input type="text" class="form-control-custom" [(ngModel)]="pedido.cliente" placeholder="Nombre completo">
               </div>
               <div class="col-md-6">
@@ -91,13 +98,24 @@ interface Producto {
                 <input type="email" class="form-control-custom" [(ngModel)]="pedido.email" placeholder="cliente@email.com">
               </div>
               <div class="col-md-6">
-                <label class="form-label-custom">Broker Asignado</label>
+                <label class="form-label-custom">Broker Asignado <span class="text-danger">*</span></label>
                 <select class="form-control-custom" [(ngModel)]="pedido.broker">
                   <option value="">Seleccione un broker</option>
-                  <option>María Rodríguez</option>
-                  <option>Juan Pérez</option>
-                  <option>Sofía Gómez</option>
+                  <option *ngFor="let broker of brokersDisponibles" [value]="broker.nombre">
+                    {{ broker.nombre }}
+                  </option>
                 </select>
+              </div>
+              <div class="col-md-12">
+                <label class="form-label-custom">Repartidor Asignado</label>
+                <select class="form-control-custom" [(ngModel)]="pedido.repartidorId">
+                  <option [value]="null">Sin asignar</option>
+                  <option *ngFor="let repartidor of repartidoresDisponibles" [value]="repartidor.id">
+                    {{ repartidor.nombre }} {{ repartidor.apellido }} - {{ repartidor.vehiculo | titlecase }}
+                    <span *ngIf="!repartidor.disponible">(No disponible)</span>
+                  </option>
+                </select>
+                <small class="text-muted">Solo se muestran repartidores activos</small>
               </div>
             </div>
           </div>
@@ -118,11 +136,10 @@ interface Producto {
             <div class="row g-2">
               <div class="col-md-6">
                 <select class="form-control-custom" [(ngModel)]="productoSeleccionado">
-                  <option value="">Producto</option>
-                  <option value="Producto A">Producto A</option>
-                  <option value="Producto B">Producto B</option>
-                  <option value="Producto C">Producto C</option>
-                  <option value="Producto D">Producto D</option>
+                  <option value="">Seleccione un producto</option>
+                  <option *ngFor="let prod of productosDisponibles" [value]="prod.nombre">
+                    {{ prod.nombre }} - \${{ prod.precio | number:'1.0-0' }}
+                  </option>
                 </select>
               </div>
               <div class="col-md-3">
@@ -132,11 +149,11 @@ interface Producto {
                   [(ngModel)]="cantidadSeleccionada"
                   placeholder="Cantidad"
                   min="1"
-                  value="1"
+                  [value]="cantidadSeleccionada"
                 >
               </div>
               <div class="col-md-3">
-                <button class="btn btn-add w-100" (click)="agregarProducto()">
+                <button class="btn btn-add w-100" (click)="agregarProducto()" [disabled]="!productoSeleccionado">
                   Agregar
                 </button>
               </div>
@@ -192,11 +209,17 @@ interface Producto {
         <button class="btn btn-cancel" (click)="volver()">
           Cancelar
         </button>
-        <button class="btn btn-save" (click)="guardarPedido()" [disabled]="!isFormValid()">
-          <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-          </svg>
-          Guardar Pedido
+        <button class="btn btn-save" (click)="guardarPedido()" [disabled]="isLoading || !isFormValid()">
+          <span *ngIf="!isLoading">
+            <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+            </svg>
+            Guardar Pedido
+          </span>
+          <span *ngIf="isLoading">
+            <span class="spinner-border spinner-border-sm me-2"></span>
+            Guardando...
+          </span>
         </button>
       </div>
     </div>
@@ -310,17 +333,30 @@ interface Producto {
     .form-control-custom {
       width: 100%;
       padding: 12px 14px;
-      padding-left: 44px;
       border: 2px solid #e5e7eb;
       border-radius: 10px;
       font-size: 14px;
       transition: all 0.2s;
     }
 
-    .input-with-icon .form-control-custom:focus {
+    .input-with-icon .form-control-custom {
+      padding-left: 44px;
+    }
+
+    .form-control-custom:focus {
       border-color: #4F46E5;
       box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
       outline: none;
+    }
+
+    .section-green .form-control-custom:focus {
+      border-color: #10b981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .section-pink .form-control-custom:focus {
+      border-color: #ec4899;
+      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
     }
 
     .empty-state {
@@ -333,32 +369,12 @@ interface Producto {
       opacity: 0.3;
     }
 
-    .client-info .form-control-custom {
-      padding-left: 14px;
-    }
-
     .form-label-custom {
       font-size: 13px;
       font-weight: 600;
       color: #374151;
       margin-bottom: 6px;
       display: block;
-    }
-
-    .client-info .form-control-custom:focus {
-      border-color: #10b981;
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-      outline: none;
-    }
-
-    .product-selector .form-control-custom {
-      padding-left: 14px;
-    }
-
-    .product-selector .form-control-custom:focus {
-      border-color: #ec4899;
-      box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
-      outline: none;
     }
 
     .btn-add {
@@ -372,9 +388,14 @@ interface Producto {
       transition: all 0.2s;
     }
 
-    .btn-add:hover {
+    .btn-add:hover:not(:disabled) {
       background: #9333EA;
       transform: translateY(-1px);
+    }
+
+    .btn-add:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .products-table {
@@ -485,6 +506,10 @@ interface Producto {
       cursor: not-allowed;
     }
 
+    .text-danger {
+      color: #ef4444;
+    }
+
     @media (max-width: 768px) {
       .header-blue {
         flex-direction: column;
@@ -501,28 +526,77 @@ interface Producto {
     }
   `]
 })
-export class NuevoPedidoPageComponent {
-  constructor(private router: Router) {}
-
+export class NuevoPedidoPageComponent implements OnInit {
   pedido = {
     direccion: '',
     cliente: '',
     telefono: '',
     email: '',
-    broker: ''
+    broker: '',
+    repartidorId: null as number | null
   };
 
   productos: Producto[] = [];
   productoSeleccionado: string = '';
   cantidadSeleccionada: number = 1;
 
-  // Simular precios de productos
-  precios: any = {
-    'Producto A': 15000,
-    'Producto B': 8500,
-    'Producto C': 5100,
-    'Producto D': 12000
-  };
+  productosDisponibles: any[] = [];
+  brokersDisponibles: any[] = [];
+  repartidoresDisponibles: any[] = [];
+
+  isLoading: boolean = false;
+  errorMessage: string = '';
+  successMessage: string = '';
+
+  precios: any = {};
+
+  constructor(
+    private router: Router,
+    private pedidosService: PedidosService,
+    private repartidoresService: RepartidoresService
+  ) {}
+
+  ngOnInit(): void {
+    this.cargarProductos();
+    this.cargarBrokers();
+    this.cargarRepartidores();
+  }
+
+  cargarProductos(): void {
+    this.pedidosService.getProductos().subscribe({
+      next: (data) => {
+        this.productosDisponibles = data;
+        data.forEach((prod: any) => {
+          this.precios[prod.nombre] = prod.precio;
+        });
+      },
+      error: (error) => {
+        console.error('Error al cargar productos:', error);
+      }
+    });
+  }
+
+  cargarBrokers(): void {
+    this.pedidosService.getBrokers().subscribe({
+      next: (data) => {
+        this.brokersDisponibles = data;
+      },
+      error: (error) => {
+        console.error('Error al cargar brokers:', error);
+      }
+    });
+  }
+
+  cargarRepartidores(): void {
+    this.repartidoresService.getRepartidores({ estado: 'activo' }).subscribe({
+      next: (data) => {
+        this.repartidoresDisponibles = data;
+      },
+      error: (error) => {
+        console.error('Error al cargar repartidores:', error);
+      }
+    });
+  }
 
   agregarProducto(): void {
     if (!this.productoSeleccionado || !this.cantidadSeleccionada || this.cantidadSeleccionada < 1) {
@@ -542,7 +616,6 @@ export class NuevoPedidoPageComponent {
 
     this.productos.push(nuevoProducto);
     
-    // Limpiar selección
     this.productoSeleccionado = '';
     this.cantidadSeleccionada = 1;
   }
@@ -559,30 +632,69 @@ export class NuevoPedidoPageComponent {
     return !!(
       this.pedido.direccion &&
       this.pedido.cliente &&
+      this.pedido.broker &&
       this.productos.length > 0
     );
   }
 
   guardarPedido(): void {
     if (!this.isFormValid()) {
+      this.errorMessage = 'Por favor completa todos los campos requeridos: dirección, cliente, broker y al menos un producto';
       return;
     }
 
-    console.log('Guardando pedido:', {
-      ...this.pedido,
-      productos: this.productos,
-      total: this.calcularTotal()
-    });
+    this.isLoading = true;
+    this.errorMessage = '';
 
-    alert('¡Pedido guardado exitosamente!');
-    
-    setTimeout(() => {
-      this.router.navigate(['/dashboard/pedidos']);
-    }, 1000);
+    // Buscar el nombre del repartidor si está asignado
+    let repartidorNombre = undefined;
+    if (this.pedido.repartidorId) {
+      const repartidor = this.repartidoresDisponibles.find(r => r.id === this.pedido.repartidorId);
+      if (repartidor) {
+        repartidorNombre = `${repartidor.nombre} ${repartidor.apellido}`;
+      }
+    }
+
+    const pedidoRequest = {
+      direccion: this.pedido.direccion,
+      cliente: this.pedido.cliente,
+      telefono: this.pedido.telefono,
+      email: this.pedido.email,
+      broker: this.pedido.broker,
+      repartidorId: this.pedido.repartidorId,
+      repartidor: repartidorNombre,
+      productos: this.productos.map(p => ({
+        nombre: p.nombre,
+        cantidad: p.cantidad,
+        precioUnitario: p.precioUnitario,
+        subtotal: p.subtotal
+      })),
+      total: this.calcularTotal()
+    };
+
+    this.pedidosService.crearPedido(pedidoRequest).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        this.successMessage = '¡Pedido guardado exitosamente!';
+        
+        setTimeout(() => {
+          this.router.navigate(['/dashboard/pedidos']);
+        }, 1500);
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.errorMessage = error.message || 'Error al guardar el pedido';
+        console.error('Error:', error);
+      }
+    });
   }
 
   volver(): void {
-    if (confirm('¿Estás seguro? Los cambios no guardados se perderán.')) {
+    if (this.productos.length > 0 || this.pedido.direccion || this.pedido.cliente) {
+      if (confirm('¿Estás seguro? Los cambios no guardados se perderán.')) {
+        this.router.navigate(['/dashboard/pedidos']);
+      }
+    } else {
       this.router.navigate(['/dashboard/pedidos']);
     }
   }

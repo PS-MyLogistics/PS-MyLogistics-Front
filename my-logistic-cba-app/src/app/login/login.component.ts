@@ -394,37 +394,37 @@ export class LoginComponent {
     });
   }
 
-  forgotPassword(): void {
-    if (!this.tenantName || !this.username) {
-      this.errorMessage = 'Por favor ingresa tu empresa/tenant y usuario para recuperar tu contraseña';
-      return;
-    }
-
-    this.isLoading = true;
-    this.errorMessage = '';
-
-    // Primero obtener el email enmascarado
-    this.authService.getMaskedEmail(this.username, this.tenantName).subscribe({
-      next: (response) => {
-        this.isLoading = false;
-        if (response.success) {
-          // Navegar a página de recuperación de contraseña con el email enmascarado
-          this.router.navigate(['/reset-password'], {
-            queryParams: {
-              username: this.username,
-              tenantName: this.tenantName,
-              maskedEmail: response.mailEncoded
-            }
-          });
-        }
-      },
-      error: (error) => {
-        this.isLoading = false;
-        this.errorMessage = error.message || 'No se pudo recuperar la información del usuario';
-      }
-    });
+ forgotPassword(): void {
+  if (!this.tenantName || !this.username) {
+    this.errorMessage = 'Por favor ingresa tu empresa/tenant y usuario para recuperar tu contraseña';
+    return;
   }
 
+  this.isLoading = true;
+  this.errorMessage = '';
+
+  // Primero obtener el email enmascarado
+  this.authService.getMaskedEmail(this.username, this.tenantName).subscribe({
+    next: (response: any) => {
+      this.isLoading = false;
+      if (response.success) {
+        const confirmar = confirm(
+          `Se enviará un email de recuperación a: ${response.mailEncoded}\n\n¿Continuar?`
+        );
+        
+        if (confirmar) {
+          // Aquí podrías pedir el email completo para validar
+          // Por ahora solo mostramos un mensaje
+          alert('Email de recuperación enviado (simulado). Revisa tu bandeja de entrada.');
+        }
+      }
+    },
+    error: (error: any) => {
+      this.isLoading = false;
+      this.errorMessage = error.message || 'No se pudo recuperar la información del usuario';
+    }
+  });
+}
   goToRegister(): void {
     this.router.navigate(['/register']);
   }

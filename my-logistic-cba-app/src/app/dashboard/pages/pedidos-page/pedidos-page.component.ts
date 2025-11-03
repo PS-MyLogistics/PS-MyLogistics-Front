@@ -1,7 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { PedidosService } from '../../../services/pedidos.service';
 
 @Component({
   selector: 'app-pedidos-page',
@@ -27,30 +28,36 @@ import { Router } from '@angular/router';
       <div class="card mb-4">
         <div class="card-body">
           <div class="row g-3">
-            <div class="col-md-3">
+            <div class="col-md-2">
               <label class="form-label">Producto</label>
-              <select class="form-select">
-                <option>Seleccione una opción</option>
-                <option>Todos</option>
+              <select class="form-select" [(ngModel)]="filtros.producto" (change)="buscarPedidos()">
+                <option value="">Todos</option>
               </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
               <label class="form-label">Broker</label>
-              <select class="form-select">
-                <option>Seleccione una opción</option>
-                <option>Todos</option>
+              <select class="form-select" [(ngModel)]="filtros.broker" (change)="buscarPedidos()">
+                <option value="">Todos</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Repartidor</label>
+              <select class="form-select" [(ngModel)]="filtros.repartidor" (change)="buscarPedidos()">
+                <option value="">Todos</option>
+                <option value="sin_asignar">Sin asignar</option>
+                <option value="asignado">Con repartidor</option>
               </select>
             </div>
             <div class="col-md-2">
               <label class="form-label">Desde</label>
-              <input type="date" class="form-control" value="2025-09-24">
+              <input type="date" class="form-control" [(ngModel)]="filtros.fechaDesde" (change)="buscarPedidos()">
             </div>
             <div class="col-md-2">
               <label class="form-label">Hasta</label>
-              <input type="date" class="form-control" value="2025-10-24">
+              <input type="date" class="form-control" [(ngModel)]="filtros.fechaHasta" (change)="buscarPedidos()">
             </div>
             <div class="col-md-2 d-flex align-items-end">
-              <button class="btn btn-primary w-100">
+              <button class="btn btn-primary w-100" (click)="buscarPedidos()">
                 <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
@@ -59,6 +66,14 @@ import { Router } from '@angular/router';
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Spinner de carga -->
+      <div *ngIf="isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-3 text-muted">Cargando pedidos...</p>
       </div>
 
       <!-- Tabla de Pedidos -->
@@ -74,6 +89,7 @@ import { Router } from '@angular/router';
                   <th>Broker</th>
                   <th>Cliente</th>
                   <th>Dirección</th>
+                  <th>Repartidor</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
@@ -87,6 +103,15 @@ import { Router } from '@angular/router';
                   <td>{{ pedido.cliente }}</td>
                   <td>
                     <small class="text-muted">{{ pedido.direccion }}</small>
+                  </td>
+                  <td>
+                    <span *ngIf="pedido.repartidor" class="badge badge-repartidor">
+                      <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                      </svg>
+                      {{ pedido.repartidor }}
+                    </span>
+                    <span *ngIf="!pedido.repartidor" class="text-muted">Sin asignar</span>
                   </td>
                   <td>
                     <span [class]="'badge bg-' + pedido.estadoColor">
@@ -186,6 +211,18 @@ import { Router } from '@angular/router';
       border-radius: 6px;
     }
 
+    .badge-repartidor {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      background: #f0f9ff;
+      color: #0369a1;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
     .btn-icon {
       background: none;
       border: 1px solid #e5e7eb;
@@ -200,17 +237,51 @@ import { Router } from '@angular/router';
     }
   `]
 })
-export class PedidosPageComponent {
-  constructor(private router: Router) {}
 
-  pedidos = [
-    { id: 1, fecha: '2025-10-15', producto: 'Paquete Estándar', broker: 'María Rodríguez', cliente: 'Elena Hernández', direccion: 'Av. Colón 1234, Córdoba, Argentina', estado: 'Entregado', estadoColor: 'success' },
-    { id: 2, fecha: '2025-10-20', producto: 'Paquete Express', broker: 'Juan Pérez', cliente: 'Javier García', direccion: 'San Martín 567, Piso 3, Rosario, Argentina', estado: 'En Tránsito', estadoColor: 'warning' },
-    { id: 3, fecha: '2025-09-29', producto: 'Paquete Premium', broker: 'María Rodríguez', cliente: 'Laura Sánchez', direccion: 'Av. Belgrano 890, Buenos Aires, Argentina', estado: 'Procesando', estadoColor: 'primary' },
-    { id: 4, fecha: '2025-09-30', producto: 'Paquete Grande', broker: 'María Rodríguez', cliente: 'Elena Sánchez', direccion: 'Independencia 234, Mendoza, Argentina', estado: 'Pendiente', estadoColor: 'secondary' },
-    { id: 5, fecha: '2025-10-12', producto: 'Paquete Express', broker: 'Juan Pérez', cliente: 'Patricia Sánchez', direccion: 'Rivadavia 456, Salta, Argentina', estado: 'Entregado', estadoColor: 'success' },
-    { id: 6, fecha: '2025-09-27', producto: 'Paquete Estándar', broker: 'Sofía Gómez', cliente: 'David Martín', direccion: 'Mitre 789, Tucumán, Argentina', estado: 'En Tránsito', estadoColor: 'warning' }
-  ];
+export class PedidosPageComponent implements OnInit {
+  pedidos: any[] = [];
+  isLoading: boolean = false;
+  errorMessage: string = '';
+
+  // Filtros
+  filtros = {
+    producto: '',
+    broker: '',
+    repartidor: '',
+    fechaDesde: '2025-09-24',
+    fechaHasta: '2025-11-24'
+  };
+
+  constructor(
+    private router: Router,
+    private pedidosService: PedidosService
+  ) {}
+
+  ngOnInit(): void {
+    this.cargarPedidos();
+  }
+
+  cargarPedidos(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.pedidosService.getPedidos(this.filtros).subscribe({
+      next: (data) => {
+        this.pedidos = data;
+        this.isLoading = false;
+        console.log('Pedidos cargados:', data); // Para debug
+      },
+      error: (error) => {
+        console.error('Error al cargar pedidos:', error);
+        this.errorMessage = 'Error al cargar los pedidos';
+        this.isLoading = false;
+      }
+    });
+  }
+
+  buscarPedidos(): void {
+    this.cargarPedidos();
+  }
 
   goToNuevoPedido(): void {
     this.router.navigate(['/dashboard/pedidos/nuevo']);

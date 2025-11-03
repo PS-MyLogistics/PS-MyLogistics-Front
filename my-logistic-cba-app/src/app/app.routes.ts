@@ -7,6 +7,8 @@ import { PedidosPageComponent } from './dashboard/pages/pedidos-page/pedidos-pag
 import { NuevoPedidoPageComponent } from './dashboard/pages/nuevo-pedido-page/nuevo-pedido-page.component';
 import { UsuariosPageComponent } from './dashboard/pages/usuarios-page/usuarios-page.component';
 import { MapaPageComponent } from './dashboard/pages/mapa-page/mapa-page.component';
+import { RepartidoresPageComponent } from './dashboard/pages/repartidores-page/repartidores-page.component';
+import { NuevoRepartidorPageComponent } from './dashboard/pages/nuevo-repartidor-page/nuevo-repartidor-page.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -18,6 +20,9 @@ export const routes: Routes = [
       { path: '', component: HomePageComponent },
       { path: 'pedidos', component: PedidosPageComponent },
       { path: 'pedidos/nuevo', component: NuevoPedidoPageComponent },
+      { path: 'repartidores', component: RepartidoresPageComponent },
+      { path: 'repartidores/nuevo', component: NuevoRepartidorPageComponent },
+      { path: 'repartidores/editar/:id', component: NuevoRepartidorPageComponent },
       { path: 'usuarios', component: UsuariosPageComponent },
       { path: 'mapa', component: MapaPageComponent }
     ]
