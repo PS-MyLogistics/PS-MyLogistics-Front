@@ -12,7 +12,9 @@ import { PedidosPageComponent } from './dashboard/pages/pedidos-page/pedidos-pag
 import { NuevoPedidoPageComponent } from './dashboard/pages/nuevo-pedido-page/nuevo-pedido-page.component';
 import { UsuariosPageComponent } from './dashboard/pages/usuarios-page/usuarios-page.component';
 import { MapaPageComponent } from './dashboard/pages/mapa-page/mapa-page.component';
+import { ProductosPageComponent } from './dashboard/pages/productos-page/productos-page.component';
 import { authGuard } from './guards/auth.guard';
+import { noDealerGuard } from './guards/role.guard';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -30,7 +32,8 @@ export const routes: Routes = [
       { path: '', component: HomePageComponent },
       { path: 'pedidos', component: PedidosPageComponent },
       { path: 'pedidos/nuevo', component: NuevoPedidoPageComponent },
-      { path: 'usuarios', component: UsuariosPageComponent },
+      { path: 'usuarios', component: UsuariosPageComponent, canActivate: [noDealerGuard] },
+      { path: 'productos', component: ProductosPageComponent },
       { path: 'mapa', component: MapaPageComponent }
     ]
   },

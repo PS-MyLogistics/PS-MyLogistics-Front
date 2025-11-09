@@ -4,6 +4,7 @@ import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { environment } from '../enviroments/enviroment';
+import { Role } from '../models/user.model';
 
 export interface LoginRequest {
   username: string;
@@ -132,6 +133,8 @@ export class AuthService {
   clearSession(): void {
     localStorage.removeItem('authToken');
     localStorage.removeItem('tenantName');
+    localStorage.removeItem('userRoles');
+    localStorage.removeItem('username');
     this.router.navigate(['/login']);
   }
 
@@ -141,6 +144,77 @@ export class AuthService {
 
   isAuthenticated(): boolean {
     return !!this.getToken();
+  }
+
+  /**
+   * Decode JWT token and extract payload
+   */
+  private decodeToken(token: string): any {
+    try {
+      const payload = token.split('.')[1];
+      return JSON.parse(atob(payload));
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get current user's username from token
+   */
+  getCurrentUsername(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
+
+    const decoded = this.decodeToken(token);
+    return decoded?.sub || null;
+  }
+
+  /**
+   * Get current user's roles from localStorage
+   * Since JWT token doesn't contain roles, we store them separately
+   */
+  getCurrentUserRoles(): Role[] {
+    const rolesStr = localStorage.getItem('userRoles');
+    if (!rolesStr) return [];
+
+    try {
+      const roles = JSON.parse(rolesStr) as Role[];
+      return roles;
+    } catch (error) {
+      console.error('Error parsing user roles:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Save user roles to localStorage
+   */
+  setUserRoles(roles: Role[]): void {
+    localStorage.setItem('userRoles', JSON.stringify(roles));
+  }
+
+  /**
+   * Check if current user has a specific role
+   */
+  hasRole(role: Role): boolean {
+    const roles = this.getCurrentUserRoles();
+    return roles.includes(role);
+  }
+
+  /**
+   * Get the highest priority role for display purposes
+   * Priority: SUPERADMIN > OWNER > ADMIN > DEALER
+   */
+  getDisplayRole(): string {
+    const roles = this.getCurrentUserRoles();
+
+    if (roles.includes(Role.SUPERADMIN)) return 'Superadministrador';
+    if (roles.includes(Role.OWNER)) return 'Propietario';
+    if (roles.includes(Role.ADMIN)) return 'Administrador';
+    if (roles.includes(Role.DEALER)) return 'Repartidor';
+
+    return 'Usuario';
   }
 
   private handleError(error: HttpErrorResponse) {

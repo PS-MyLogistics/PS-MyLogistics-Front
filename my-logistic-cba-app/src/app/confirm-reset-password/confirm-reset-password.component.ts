@@ -452,7 +452,8 @@ export class ConfirmResetPasswordComponent implements OnInit {
         this.isLoading = false;
         console.log('Respuesta exitosa:', response);
 
-        if (response.success) {
+        // Si la respuesta es null o success es true, consideramos que fue exitoso
+        if (!response || response.success !== false) {
           this.successMessage = '¡Contraseña restablecida exitosamente! Redirigiendo al login...';
 
           // Redirigir al login después de 2 segundos

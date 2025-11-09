@@ -3,6 +3,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../services/auth.service';
+import { Role } from '../models/user.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -37,7 +39,15 @@ import { FormsModule } from '@angular/forms';
             <span>Pedidos</span>
           </a>
 
-          <a [routerLink]="['/dashboard/usuarios']" routerLinkActive="active" class="nav-item">
+          <a [routerLink]="['/dashboard/productos']" routerLinkActive="active" class="nav-item">
+            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8.01-4.1a2 2 0 00-1.98 0L2 7v10a2 2 0 002 2h16a2 2 0 002-2V7zM12 2v10m0 0L6 8m6 4l6-4"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l9-5 9 5M5 10h14"></path>
+            </svg>
+            <span>Productos</span>
+          </a>
+
+          <a *ngIf="!isDealer()" [routerLink]="['/dashboard/usuarios']" routerLinkActive="active" class="nav-item">
             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
             </svg>
@@ -85,11 +95,12 @@ import { FormsModule } from '@angular/forms';
           </div>
 
           <div class="navbar-actions">
-            <button class="btn-icon">
+            <!-- Notification bell disabled for future use -->
+            <!-- <button class="btn-icon">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
               </svg>
-            </button>
+            </button> -->
 
             <div class="user-menu">
               <div class="user-avatar">
@@ -97,7 +108,7 @@ import { FormsModule } from '@angular/forms';
               </div>
               <div class="user-info">
                 <span class="user-name">{{ username }}</span>
-                <small class="user-role">Administrador</small>
+                <small class="user-role">{{ userRole }}</small>
               </div>
             </div>
           </div>
@@ -362,16 +373,30 @@ import { FormsModule } from '@angular/forms';
 })
 export class DashboardComponent implements OnInit {
   username: string = 'Usuario Demo';
+  userRole: string = 'Usuario';
   sidebarOpen: boolean = false;
   currentPageTitle: string = 'Inicio';
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
-    const savedUsername = localStorage.getItem('username');
-    if (savedUsername) {
-      this.username = savedUsername;
+    // Get username from token
+    const tokenUsername = this.authService.getCurrentUsername();
+    if (tokenUsername) {
+      this.username = tokenUsername;
+    } else {
+      // Fallback to localStorage if token is not available
+      const savedUsername = localStorage.getItem('username');
+      if (savedUsername) {
+        this.username = savedUsername;
+      }
     }
+
+    // Get user role from token
+    this.userRole = this.authService.getDisplayRole();
 
     this.updatePageTitle();
   }
@@ -380,6 +405,8 @@ export class DashboardComponent implements OnInit {
     const url = this.router.url;
     if (url.includes('pedidos')) {
       this.currentPageTitle = 'Pedidos';
+    } else if (url.includes('productos')) {
+      this.currentPageTitle = 'Productos';
     } else if (url.includes('usuarios')) {
       this.currentPageTitle = 'Usuarios';
     } else if (url.includes('mapa')) {
@@ -395,6 +422,13 @@ export class DashboardComponent implements OnInit {
 
   getInitials(): string {
     return this.username.substring(0, 2).toUpperCase();
+  }
+
+  /**
+   * Check if the current user is a dealer
+   */
+  isDealer(): boolean {
+    return this.authService.hasRole(Role.DEALER);
   }
 
   logout(): void {

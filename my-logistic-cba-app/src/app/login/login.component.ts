@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService, LoginRequest } from '../services/auth.service';
+import { UserService } from '../services/user.service';
 
 @Component({
   selector: 'app-login',
@@ -366,6 +367,7 @@ import { AuthService, LoginRequest } from '../services/auth.service';
 })
 export class LoginComponent {
   private authService = inject(AuthService);
+  private userService = inject(UserService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
@@ -412,10 +414,8 @@ export class LoginComponent {
 
     this.authService.login(loginRequest).subscribe({
       next: (response) => {
-        this.isLoading = false;
-
         if (response.success) {
-          this.successMessage = 'Inicio de sesión exitoso. Redirigiendo...';
+          this.successMessage = 'Inicio de sesión exitoso. Cargando información...';
 
           // Guardar tenantName si "Recordarme" está activo
           if (this.rememberMe) {
@@ -423,11 +423,30 @@ export class LoginComponent {
             localStorage.setItem('username', this.username);
           }
 
-          // Redirigir al dashboard después de 1 segundo
-          setTimeout(() => {
-            this.router.navigate(['/dashboard']);
-          }, 1000);
+          // Obtener información del usuario actual (incluyendo roles)
+          this.userService.getCurrentUser().subscribe({
+            next: (user) => {
+              // Guardar roles en localStorage
+              this.authService.setUserRoles(user.roles);
+
+              // Redirigir al dashboard
+              this.isLoading = false;
+              setTimeout(() => {
+                this.router.navigate(['/dashboard']);
+              }, 500);
+            },
+            error: (userError) => {
+              this.isLoading = false;
+
+              // Aún así redirigir al dashboard (pero sin roles)
+              this.setError('Advertencia: No se pudieron cargar los permisos del usuario', 'warning');
+              setTimeout(() => {
+                this.router.navigate(['/dashboard']);
+              }, 1500);
+            }
+          });
         } else {
+          this.isLoading = false;
           this.setError(response.message || 'Error al iniciar sesión', 'error');
         }
       },
