@@ -1,10 +1,17 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { OrderService } from '../../../services/order.service';
+import { ProductService } from '../../../services/product.service';
+import { CustomerService } from '../../../services/customer.service';
+import { ToastService } from '../../../services/toast.service';
+import { OrderCreationRequest, OrderItemRequest } from '../../../models/order.model';
+import { CustomerCreationRequest, Customer } from '../../../models/customer.model';
+import { ProductResponse } from '../../../models/product.model';
 
-interface Producto {
-  id: number;
+interface ProductoEnPedido {
+  productId: string;
   nombre: string;
   cantidad: number;
   precioUnitario: number;
@@ -35,29 +42,6 @@ interface Producto {
         </div>
       </div>
 
-      <!-- Sección Dirección de Entrega (Azul claro) -->
-      <div class="section section-blue">
-        <div class="section-header">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          </svg>
-          <h6>Dirección de Entrega</h6>
-        </div>
-        <div class="section-body">
-          <div class="input-with-icon">
-            <svg class="input-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-            </svg>
-            <input 
-              type="text" 
-              class="form-control-custom" 
-              [(ngModel)]="pedido.direccion"
-              placeholder="Ingrese la dirección de entrega..."
-            >
-          </div>
-        </div>
-      </div>
 
       <!-- Sección Información del Cliente (Verde claro) -->
       <div class="section section-green">
@@ -68,36 +52,78 @@ interface Producto {
           <h6>Información del Cliente</h6>
         </div>
         <div class="section-body">
-          <div class="empty-state" *ngIf="!pedido.cliente">
-            <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-            </svg>
-            <p class="mt-3 mb-2">Ingrese una dirección para buscar clientes existentes</p>
-            <p class="text-muted small">o crear un nuevo cliente</p>
-          </div>
-          
-          <div *ngIf="pedido.cliente" class="client-info">
-            <div class="row g-3">
+          <div class="client-info">
+            <!-- Toggle para seleccionar modo -->
+            <div class="customer-mode-toggle mb-3">
+              <button
+                type="button"
+                class="toggle-btn"
+                [class.active]="!useExistingCustomer"
+                (click)="toggleCustomerMode(false)"
+              >
+                Nuevo Cliente
+              </button>
+              <button
+                type="button"
+                class="toggle-btn"
+                [class.active]="useExistingCustomer"
+                (click)="toggleCustomerMode(true)"
+              >
+                Cliente Existente
+              </button>
+            </div>
+
+            <!-- Selector de cliente existente -->
+            <div *ngIf="useExistingCustomer" class="mb-3">
+              <label class="form-label-custom">Seleccionar Cliente *</label>
+              <select class="form-control-custom" [(ngModel)]="selectedCustomerId" (ngModelChange)="onCustomerSelect()">
+                <option value="">-- Selecciona un cliente --</option>
+                <option *ngFor="let customer of customersDisponibles" [value]="customer.id">
+                  {{ customer.name }} - {{ customer.email }}
+                </option>
+              </select>
+            </div>
+
+            <div class="row g-3" *ngIf="!useExistingCustomer || selectedCustomerId">
               <div class="col-md-6">
-                <label class="form-label-custom">Nombre del Cliente</label>
-                <input type="text" class="form-control-custom" [(ngModel)]="pedido.cliente" placeholder="Nombre completo">
+                <label class="form-label-custom">Nombre del Cliente *</label>
+                <input type="text" class="form-control-custom" [(ngModel)]="cliente.name" placeholder="Nombre completo" required [disabled]="useExistingCustomer">
               </div>
               <div class="col-md-6">
-                <label class="form-label-custom">Teléfono</label>
-                <input type="tel" class="form-control-custom" [(ngModel)]="pedido.telefono" placeholder="3511234567">
+                <label class="form-label-custom">Email *</label>
+                <input type="email" class="form-control-custom" [(ngModel)]="cliente.email" placeholder="cliente@email.com" required [disabled]="useExistingCustomer">
               </div>
               <div class="col-md-6">
-                <label class="form-label-custom">Email</label>
-                <input type="email" class="form-control-custom" [(ngModel)]="pedido.email" placeholder="cliente@email.com">
+                <label class="form-label-custom">Teléfono *</label>
+                <input type="tel" class="form-control-custom" [(ngModel)]="cliente.phoneNumber" placeholder="3511234567" required [disabled]="useExistingCustomer">
               </div>
               <div class="col-md-6">
-                <label class="form-label-custom">Broker Asignado</label>
-                <select class="form-control-custom" [(ngModel)]="pedido.broker">
-                  <option value="">Seleccione un broker</option>
-                  <option>María Rodríguez</option>
-                  <option>Juan Pérez</option>
-                  <option>Sofía Gómez</option>
-                </select>
+                <label class="form-label-custom">Dirección *</label>
+                <input type="text" class="form-control-custom" [(ngModel)]="cliente.address" placeholder="Calle y número" required [disabled]="useExistingCustomer">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label-custom">Código Postal *</label>
+                <input type="text" class="form-control-custom" [(ngModel)]="cliente.postalCode" placeholder="5000" required [disabled]="useExistingCustomer">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label-custom">Ciudad *</label>
+                <input type="text" class="form-control-custom" [(ngModel)]="cliente.city" placeholder="Córdoba" required [disabled]="useExistingCustomer">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label-custom">Provincia *</label>
+                <input type="text" class="form-control-custom" [(ngModel)]="cliente.state" placeholder="Córdoba" required [disabled]="useExistingCustomer">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label-custom">País *</label>
+                <input type="text" class="form-control-custom" [(ngModel)]="cliente.country" placeholder="Argentina" required [disabled]="useExistingCustomer">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label-custom">Timbre</label>
+                <input type="text" class="form-control-custom" [(ngModel)]="cliente.doorbell" placeholder="Ej: A, 1B, etc." [disabled]="useExistingCustomer">
+              </div>
+              <div class="col-12">
+                <label class="form-label-custom">Notas Adicionales</label>
+                <textarea class="form-control-custom" [(ngModel)]="cliente.notes" placeholder="Información adicional sobre el cliente..." rows="3" [disabled]="useExistingCustomer"></textarea>
               </div>
             </div>
           </div>
@@ -115,20 +141,19 @@ interface Producto {
         <div class="section-body">
           <!-- Selector de productos -->
           <div class="product-selector mb-3">
-            <div class="row g-2">
-              <div class="col-md-6">
-                <select class="form-control-custom" [(ngModel)]="productoSeleccionado">
-                  <option value="">Producto</option>
-                  <option value="Producto A">Producto A</option>
-                  <option value="Producto B">Producto B</option>
-                  <option value="Producto C">Producto C</option>
-                  <option value="Producto D">Producto D</option>
+            <div class="row g-2 align-items-end">
+              <div class="col-md-4">
+                <label class="form-label-custom">Producto</label>
+                <select class="form-control-custom" [(ngModel)]="productoSeleccionadoId" (ngModelChange)="onProductoSelect()" [disabled]="isLoadingProducts">
+                  <option value="">Seleccione un producto</option>
+                  <option *ngFor="let prod of productosDisponibles" [value]="prod.id">{{ prod.name }}</option>
                 </select>
               </div>
               <div class="col-md-3">
-                <input 
-                  type="number" 
-                  class="form-control-custom text-center" 
+                <label class="form-label-custom">Cantidad</label>
+                <input
+                  type="number"
+                  class="form-control-custom text-center"
                   [(ngModel)]="cantidadSeleccionada"
                   placeholder="Cantidad"
                   min="1"
@@ -136,6 +161,17 @@ interface Producto {
                 >
               </div>
               <div class="col-md-3">
+                <label class="form-label-custom">Precio Unitario</label>
+                <input
+                  type="number"
+                  class="form-control-custom text-end"
+                  [(ngModel)]="precioUnitarioSeleccionado"
+                  placeholder="0.00"
+                  min="0.01"
+                  step="0.01"
+                >
+              </div>
+              <div class="col-md-2">
                 <button class="btn btn-add w-100" (click)="agregarProducto()">
                   Agregar
                 </button>
@@ -156,13 +192,13 @@ interface Producto {
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let prod of productos">
+                <tr *ngFor="let prod of productos; let i = index">
                   <td>{{ prod.nombre }}</td>
                   <td class="text-center">{{ prod.cantidad }}</td>
                   <td class="text-end">\$ {{ prod.precioUnitario | number:'1.2-2' }}</td>
                   <td class="text-end">\$ {{ prod.subtotal | number:'1.2-2' }}</td>
                   <td class="text-end">
-                    <button class="btn-delete" (click)="eliminarProducto(prod.id)">
+                    <button class="btn-delete" (click)="eliminarProducto(i)">
                       <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                       </svg>
@@ -189,14 +225,15 @@ interface Producto {
 
       <!-- Botones de acción -->
       <div class="action-buttons">
-        <button class="btn btn-cancel" (click)="volver()">
+        <button class="btn btn-cancel" (click)="volver()" [disabled]="isCreatingOrder">
           Cancelar
         </button>
-        <button class="btn btn-save" (click)="guardarPedido()" [disabled]="!isFormValid()">
+        <button class="btn btn-save" (click)="guardarPedido()" [disabled]="!isFormValid() || isCreatingOrder">
           <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
           </svg>
-          Guardar Pedido
+          <span *ngIf="!isCreatingOrder">Guardar Pedido</span>
+          <span *ngIf="isCreatingOrder">Guardando...</span>
         </button>
       </div>
     </div>
@@ -333,7 +370,8 @@ interface Producto {
       opacity: 0.3;
     }
 
-    .client-info .form-control-custom {
+    .client-info .form-control-custom,
+    .client-info textarea.form-control-custom {
       padding-left: 14px;
     }
 
@@ -345,10 +383,54 @@ interface Producto {
       display: block;
     }
 
-    .client-info .form-control-custom:focus {
+    .client-info .form-control-custom:focus,
+    .client-info textarea.form-control-custom:focus {
       border-color: #10b981;
       box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
       outline: none;
+    }
+
+    .client-info .form-control-custom:disabled,
+    .client-info textarea.form-control-custom:disabled {
+      background-color: #f3f4f6;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .customer-mode-toggle {
+      display: flex;
+      gap: 8px;
+      background: #f3f4f6;
+      padding: 4px;
+      border-radius: 10px;
+      width: fit-content;
+    }
+
+    .toggle-btn {
+      padding: 10px 20px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .toggle-btn:hover {
+      color: #374151;
+    }
+
+    .toggle-btn.active {
+      background: white;
+      color: #10b981;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    textarea.form-control-custom {
+      resize: vertical;
+      font-family: inherit;
     }
 
     .product-selector .form-control-custom {
@@ -501,54 +583,168 @@ interface Producto {
     }
   `]
 })
-export class NuevoPedidoPageComponent {
-  constructor(private router: Router) {}
+export class NuevoPedidoPageComponent implements OnInit {
+  private router = inject(Router);
+  private orderService = inject(OrderService);
+  private productService = inject(ProductService);
+  private customerService = inject(CustomerService);
+  private toastService = inject(ToastService);
 
-  pedido = {
-    direccion: '',
-    cliente: '',
-    telefono: '',
+  // Customer selection mode
+  useExistingCustomer: boolean = false;
+  selectedCustomerId: string = '';
+  customersDisponibles: Customer[] = [];
+
+  // Customer information
+  cliente: CustomerCreationRequest = {
+    name: '',
     email: '',
-    broker: ''
+    phoneNumber: '',
+    address: '',
+    postalCode: '',
+    city: '',
+    state: '',
+    country: '',
+    doorbell: '',
+    notes: ''
   };
 
-  productos: Producto[] = [];
-  productoSeleccionado: string = '';
+  // Products
+  productos: ProductoEnPedido[] = [];
+  productosDisponibles: ProductResponse[] = [];
+  productoSeleccionadoId: string = '';
   cantidadSeleccionada: number = 1;
+  precioUnitarioSeleccionado: number = 0;
 
-  // Simular precios de productos
-  precios: any = {
-    'Producto A': 15000,
-    'Producto B': 8500,
-    'Producto C': 5100,
-    'Producto D': 12000
-  };
+  // Loading states
+  isLoadingProducts = false;
+  isLoadingCustomers = false;
+  isCreatingOrder = false;
+
+  ngOnInit(): void {
+    this.loadProducts();
+    this.loadCustomers();
+  }
+
+  loadCustomers(): void {
+    this.isLoadingCustomers = true;
+    this.customerService.getAll().subscribe({
+      next: (customers) => {
+        this.customersDisponibles = customers.filter(c => c.isActive);
+        this.isLoadingCustomers = false;
+      },
+      error: (error) => {
+        this.toastService.error(error.message || 'Error al cargar clientes');
+        this.isLoadingCustomers = false;
+      }
+    });
+  }
+
+  toggleCustomerMode(useExisting: boolean): void {
+    this.useExistingCustomer = useExisting;
+    if (!useExisting) {
+      // Reset to new customer mode
+      this.selectedCustomerId = '';
+      this.cliente = {
+        name: '',
+        email: '',
+        phoneNumber: '',
+        address: '',
+        postalCode: '',
+        city: '',
+        state: '',
+        country: '',
+        doorbell: '',
+        notes: ''
+      };
+    }
+  }
+
+  onCustomerSelect(): void {
+    if (this.selectedCustomerId) {
+      const selectedCustomer = this.customersDisponibles.find(c => c.id === this.selectedCustomerId);
+      if (selectedCustomer) {
+        this.cliente = {
+          name: selectedCustomer.name,
+          email: selectedCustomer.email,
+          phoneNumber: selectedCustomer.phoneNumber,
+          address: selectedCustomer.address,
+          postalCode: selectedCustomer.postalCode,
+          city: selectedCustomer.city,
+          state: selectedCustomer.state,
+          country: selectedCustomer.country,
+          doorbell: selectedCustomer.doorbell,
+          notes: selectedCustomer.notes || ''
+        };
+      }
+    }
+  }
+
+  loadProducts(): void {
+    this.isLoadingProducts = true;
+    this.productService.getAll().subscribe({
+      next: (products) => {
+        this.productosDisponibles = products;
+        this.isLoadingProducts = false;
+      },
+      error: (error) => {
+        this.toastService.error(error.message || 'Error al cargar productos');
+        this.isLoadingProducts = false;
+      }
+    });
+  }
+
+  onProductoSelect(): void {
+    if (this.productoSeleccionadoId) {
+      const productoSeleccionado = this.productosDisponibles.find(p => p.id === this.productoSeleccionadoId);
+      if (productoSeleccionado && productoSeleccionado.price) {
+        this.precioUnitarioSeleccionado = productoSeleccionado.price;
+      }
+    } else {
+      this.precioUnitarioSeleccionado = 0;
+    }
+  }
 
   agregarProducto(): void {
-    if (!this.productoSeleccionado || !this.cantidadSeleccionada || this.cantidadSeleccionada < 1) {
+    if (!this.productoSeleccionadoId || !this.cantidadSeleccionada || this.cantidadSeleccionada < 1) {
+      this.toastService.warning('Seleccione un producto y una cantidad válida');
       return;
     }
 
-    const precioUnitario = this.precios[this.productoSeleccionado];
-    const subtotal = precioUnitario * this.cantidadSeleccionada;
+    if (!this.precioUnitarioSeleccionado || this.precioUnitarioSeleccionado <= 0) {
+      this.toastService.warning('Ingrese un precio unitario válido mayor a 0');
+      return;
+    }
 
-    const nuevoProducto: Producto = {
-      id: Date.now(),
-      nombre: this.productoSeleccionado,
+    const productoEncontrado = this.productosDisponibles.find(p => p.id === this.productoSeleccionadoId);
+    if (!productoEncontrado) {
+      this.toastService.error('Producto no encontrado');
+      return;
+    }
+
+    const subtotal = this.precioUnitarioSeleccionado * this.cantidadSeleccionada;
+
+    const nuevoProducto: ProductoEnPedido = {
+      productId: this.productoSeleccionadoId,
+      nombre: productoEncontrado.name,
       cantidad: this.cantidadSeleccionada,
-      precioUnitario: precioUnitario,
+      precioUnitario: this.precioUnitarioSeleccionado,
       subtotal: subtotal
     };
 
     this.productos.push(nuevoProducto);
-    
+    this.toastService.success(`Producto "${productoEncontrado.name}" agregado`);
+
     // Limpiar selección
-    this.productoSeleccionado = '';
+    this.productoSeleccionadoId = '';
     this.cantidadSeleccionada = 1;
+    this.precioUnitarioSeleccionado = 0;
   }
 
-  eliminarProducto(id: number): void {
-    this.productos = this.productos.filter(p => p.id !== id);
+  eliminarProducto(index: number): void {
+    const producto = this.productos[index];
+    this.productos.splice(index, 1);
+    this.toastService.info(`Producto "${producto.nombre}" eliminado`);
   }
 
   calcularTotal(): number {
@@ -556,33 +752,83 @@ export class NuevoPedidoPageComponent {
   }
 
   isFormValid(): boolean {
-    return !!(
-      this.pedido.direccion &&
-      this.pedido.cliente &&
-      this.productos.length > 0
+    // Validate customer information
+    const customerValid = !!(
+      this.cliente.name &&
+      this.cliente.email &&
+      this.cliente.phoneNumber &&
+      this.cliente.address &&
+      this.cliente.postalCode &&
+      this.cliente.city &&
+      this.cliente.state &&
+      this.cliente.country &&
+      this.cliente.doorbell
     );
+
+    // Validate at least one product
+    const productsValid = this.productos.length > 0;
+
+    return customerValid && productsValid;
   }
 
   guardarPedido(): void {
     if (!this.isFormValid()) {
+      this.toastService.warning('Por favor complete todos los campos requeridos');
       return;
     }
 
-    console.log('Guardando pedido:', {
-      ...this.pedido,
-      productos: this.productos,
-      total: this.calcularTotal()
-    });
+    this.isCreatingOrder = true;
 
-    alert('¡Pedido guardado exitosamente!');
-    
-    setTimeout(() => {
-      this.router.navigate(['/dashboard/pedidos']);
-    }, 1000);
+    // Build order items
+    const items: OrderItemRequest[] = this.productos.map(p => ({
+      productId: p.productId,
+      quantity: p.cantidad,
+      unitPrice: p.precioUnitario
+    }));
+
+    // Build order request
+    const orderRequest: OrderCreationRequest = this.useExistingCustomer && this.selectedCustomerId
+      ? {
+          items: items,
+          customerId: this.selectedCustomerId
+        }
+      : {
+          items: items,
+          customerCreationRequest: this.cliente
+        };
+
+    this.orderService.createOrder(orderRequest).subscribe({
+      next: (response) => {
+        this.isCreatingOrder = false;
+        this.toastService.success(
+          `Pedido #${response.orderNumber} creado exitosamente`
+        );
+
+        // Navigate to pedidos page after a short delay
+        setTimeout(() => {
+          this.router.navigate(['/dashboard/pedidos']);
+        }, 1500);
+      },
+      error: (error) => {
+        this.isCreatingOrder = false;
+        this.toastService.error(
+          error.message || 'Error al crear el pedido. Por favor intente nuevamente.'
+        );
+        console.error('Error creating order:', error);
+      }
+    });
   }
 
   volver(): void {
-    if (confirm('¿Estás seguro? Los cambios no guardados se perderán.')) {
+    const hasChanges = this.productos.length > 0 ||
+                       this.cliente.name ||
+                       this.cliente.email;
+
+    if (hasChanges) {
+      if (confirm('¿Estás seguro? Los cambios no guardados se perderán.')) {
+        this.router.navigate(['/dashboard/pedidos']);
+      }
+    } else {
       this.router.navigate(['/dashboard/pedidos']);
     }
   }

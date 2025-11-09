@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserService } from '../../../services/user.service';
 import { ToastService } from '../../../services/toast.service';
-import { UserDto, RegisterUserInTenantRequest, Role } from '../../../models/user.model';
+import { UserDto, RegisterUserInTenantRequest, EditUserInTenantRequest, Role } from '../../../models/user.model';
 
 @Component({
   selector: 'app-usuarios-page',
@@ -89,6 +89,15 @@ import { UserDto, RegisterUserInTenantRequest, Role } from '../../../models/user
                   <td>{{ usuario.pedidos }}</td>
                   <td>{{ usuario.ultimoAcceso }}</td>
                   <td>
+                    <button
+                      class="btn btn-sm btn-icon text-primary me-2"
+                      title="Editar usuario"
+                      (click)="openEditUserModal(usuario)"
+                    >
+                      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                      </svg>
+                    </button>
                     <button
                       class="btn btn-sm btn-icon text-danger"
                       title="Eliminar usuario"
@@ -337,6 +346,119 @@ import { UserDto, RegisterUserInTenantRequest, Role } from '../../../models/user
           </div>
         </div>
       </div>
+
+      <!-- Modal Editar Usuario -->
+      <div class="modal fade" [class.show]="showEditModal" [style.display]="showEditModal ? 'block' : 'none'" tabindex="-1">
+        <div class="modal-backdrop fade" [class.show]="showEditModal" (click)="closeEditUserModal()"></div>
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">
+                <svg class="me-2" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline-block; vertical-align: middle;">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Editar Usuario
+              </h5>
+              <button type="button" class="btn-close" (click)="closeEditUserModal()"></button>
+            </div>
+            <div class="modal-body">
+              <!-- Formulario de Edición -->
+              <form (ngSubmit)="saveEditUser()" #editForm="ngForm">
+                <div class="mb-3">
+                  <label for="editUsername" class="form-label">Nombre de Usuario *</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="editUsername"
+                    [(ngModel)]="editUser.username"
+                    name="username"
+                    required
+                    placeholder="Ej: juan_perez"
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="editTelephone" class="form-label">Teléfono</label>
+                  <input
+                    type="tel"
+                    class="form-control"
+                    id="editTelephone"
+                    [(ngModel)]="editUser.telephone"
+                    name="telephone"
+                    pattern="[0-9]*"
+                    placeholder="Ej: 3512345678"
+                  />
+                  <small class="form-text text-muted">Solo números</small>
+                </div>
+
+                <div class="mb-3">
+                  <label for="editRole" class="form-label">Rol *</label>
+                  <select
+                    class="form-select"
+                    id="editRole"
+                    [(ngModel)]="selectedRole"
+                    name="role"
+                    required
+                  >
+                    <option value="">Selecciona un rol</option>
+                    <option value="DEALER">Operador (Dealer)</option>
+                    <option value="ADMIN">Administrador</option>
+                  </select>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="editCity" class="form-label">Ciudad</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="editCity"
+                      [(ngModel)]="editUser.city"
+                      name="city"
+                      placeholder="Ej: Córdoba"
+                    />
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label for="editStateOrProvince" class="form-label">Provincia</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="editStateOrProvince"
+                      [(ngModel)]="editUser.stateOrProvince"
+                      name="stateOrProvince"
+                      placeholder="Ej: Córdoba"
+                    />
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="editAddress" class="form-label">Dirección</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="editAddress"
+                    [(ngModel)]="editUser.address"
+                    name="address"
+                    placeholder="Ej: Av. Colón 1234"
+                  />
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" (click)="closeEditUserModal()" [disabled]="isCreating">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary" (click)="saveEditUser()" [disabled]="isCreating || !editUser.username">
+                <span *ngIf="!isCreating">Guardar Cambios</span>
+                <span *ngIf="isCreating">
+                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Guardando...
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   `,
   styles: [`
@@ -445,6 +567,12 @@ import { UserDto, RegisterUserInTenantRequest, Role } from '../../../models/user
       color: #ef4444;
     }
 
+    .btn-icon.text-primary:hover {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #2563eb;
+    }
+
     .btn-group {
       display: flex;
       gap: 4px;
@@ -483,6 +611,10 @@ import { UserDto, RegisterUserInTenantRequest, Role } from '../../../models/user
       margin: 1.75rem auto;
       max-width: 600px;
       z-index: 1056;
+    }
+
+    .modal-dialog.modal-lg {
+      max-width: 800px;
     }
 
     .modal-content {
@@ -651,6 +783,12 @@ export class UsuariosPageComponent implements OnInit {
   createSuccess = '';
   showPassword = false;
   selectedRole: string = '';
+
+  // Modal edit user
+  showEditModal = false;
+  isEditMode = false;
+  editingUserId: string | null = null;
+  editUser: Partial<EditUserInTenantRequest> = {};
 
   // Modal delete user
   showDeleteModal = false;
@@ -861,6 +999,66 @@ export class UsuariosPageComponent implements OnInit {
         this.toastService.error(error.message || 'Error al crear el usuario', 5000);
 
         console.error('Error creating user:', error);
+      }
+    });
+  }
+
+  // Edit user methods
+  openEditUserModal(usuario: any): void {
+    const originalUser = this.usuariosOriginales.find(u => u.id === usuario.id);
+    if (!originalUser) return;
+
+    this.isEditMode = true;
+    this.showEditModal = true;
+    this.editingUserId = originalUser.id;
+    this.editUser = {
+      userId: originalUser.id,
+      username: originalUser.username,
+      telephone: originalUser.telephone || '',
+      address: originalUser.address || '',
+      city: originalUser.city || '',
+      stateOrProvince: originalUser.stateOrProvince || '',
+      roles: originalUser.roles
+    };
+    this.selectedRole = originalUser.roles[0] || '';
+  }
+
+  closeEditUserModal(): void {
+    this.showEditModal = false;
+    this.isEditMode = false;
+    this.editingUserId = null;
+    this.editUser = {};
+    this.selectedRole = '';
+  }
+
+  saveEditUser(): void {
+    if (!this.editingUserId || !this.editUser.username) {
+      this.toastService.warning('Por favor completa los campos requeridos');
+      return;
+    }
+
+    this.isCreating = true;
+
+    const request: EditUserInTenantRequest = {
+      userId: this.editingUserId,
+      username: this.editUser.username!,
+      telephone: this.editUser.telephone,
+      address: this.editUser.address,
+      city: this.editUser.city,
+      stateOrProvince: this.editUser.stateOrProvince,
+      roles: [this.selectedRole as Role]
+    };
+
+    this.userService.editInternalUser(request).subscribe({
+      next: (user) => {
+        this.isCreating = false;
+        this.toastService.success(`Usuario ${user.username} actualizado exitosamente`);
+        this.loadUsers();
+        this.closeEditUserModal();
+      },
+      error: (error) => {
+        this.isCreating = false;
+        this.toastService.error(error.message || 'Error al actualizar el usuario');
       }
     });
   }

@@ -1,0 +1,542 @@
+<div class="page-container">
+  <!-- Header con botón -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h5 class="mb-1">Gestión de Clientes</h5>
+      <p class="text-muted mb-0">Administra los clientes del sistema</p>
+    </div>
+    <button class="btn btn-primary" (click)="openCreateCustomerModal()">
+      <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+      </svg>
+      Nuevo Cliente
+    </button>
+  </div>
+
+  <!-- Buscador -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-7">
+          <div class="search-box">
+            <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            <input
+              type="text"
+              class="form-control ps-5"
+              placeholder="Buscar por nombre, email, teléfono, ciudad..."
+              [(ngModel)]="searchTerm"
+              (ngModelChange)="applyFilters()"
+            >
+          </div>
+        </div>
+        <div class="col-md-4">
+          <select class="form-select" [(ngModel)]="filtroEstado" (ngModelChange)="applyFilters()">
+            <option value="">Todos los estados</option>
+            <option value="true">Activo</option>
+            <option value="false">Inactivo</option>
+          </select>
+        </div>
+        <div class="col-md-1">
+          <button class="btn btn-secondary w-100" (click)="limpiarFiltros()" title="Limpiar filtros">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+    <p class="mt-3 text-muted">Cargando clientes...</p>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!isLoading && clientesFiltrados.length === 0" class="text-center py-5">
+    <svg class="mb-3" width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+    </svg>
+    <h6>No se encontraron clientes</h6>
+    <p class="text-muted">{{ searchTerm || filtroEstado ? 'Intenta ajustar los filtros' : 'Crea tu primer cliente para comenzar' }}</p>
+  </div>
+
+  <!-- Tabla de Clientes -->
+  <div class="card" *ngIf="!isLoading && clientesFiltrados.length > 0">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Email</th>
+              <th>Teléfono</th>
+              <th>Ciudad</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cliente of clientesFiltrados">
+              <td>
+                <div class="d-flex align-items-center gap-2">
+                  <div class="user-avatar-small">
+                    {{ cliente.iniciales }}
+                  </div>
+                  <strong>{{ cliente.nombre }}</strong>
+                </div>
+              </td>
+              <td>{{ cliente.email }}</td>
+              <td>{{ cliente.telefono }}</td>
+              <td>{{ cliente.ciudad }}, {{ cliente.provincia }}</td>
+              <td>
+                <span [class]="'badge bg-' + cliente.estadoColor">
+                  {{ cliente.estado }}
+                </span>
+              </td>
+              <td>
+                <button
+                  class="btn btn-sm btn-icon text-primary me-2"
+                  title="Editar cliente"
+                  (click)="openEditCustomerModal(cliente)"
+                >
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                  </svg>
+                </button>
+                <button
+                  class="btn btn-sm btn-icon text-danger"
+                  title="Eliminar cliente"
+                  (click)="openDeleteModal(cliente)"
+                >
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info de resultados -->
+  <div class="mt-3 text-muted" *ngIf="!isLoading && clientesFiltrados.length > 0">
+    Mostrando {{ clientesFiltrados.length }} de {{ clientes.length }} clientes
+  </div>
+
+  <!-- Modal Crear Cliente -->
+  <div class="modal fade" [class.show]="showCreateModal" [style.display]="showCreateModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showCreateModal" (click)="closeCreateCustomerModal()"></div>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Crear Nuevo Cliente</h5>
+          <button type="button" class="btn-close" (click)="closeCreateCustomerModal()"></button>
+        </div>
+        <div class="modal-body">
+          <form (ngSubmit)="createCustomer()" #createForm="ngForm">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="name" class="form-label">Nombre Completo *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="name"
+                  [(ngModel)]="newCustomer.name"
+                  name="name"
+                  required
+                  placeholder="Ej: Juan Pérez"
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="email" class="form-label">Email *</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="email"
+                  [(ngModel)]="newCustomer.email"
+                  name="email"
+                  required
+                  placeholder="cliente@example.com"
+                />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="phoneNumber" class="form-label">Teléfono *</label>
+                <input
+                  type="tel"
+                  class="form-control"
+                  id="phoneNumber"
+                  [(ngModel)]="newCustomer.phoneNumber"
+                  name="phoneNumber"
+                  required
+                  placeholder="Ej: 3512345678"
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="postalCode" class="form-label">Código Postal *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="postalCode"
+                  [(ngModel)]="newCustomer.postalCode"
+                  name="postalCode"
+                  required
+                  placeholder="Ej: 5000"
+                />
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="address" class="form-label">Dirección *</label>
+              <input
+                type="text"
+                class="form-control"
+                id="address"
+                [(ngModel)]="newCustomer.address"
+                name="address"
+                required
+                placeholder="Ej: Av. Colón 1234"
+              />
+            </div>
+
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="city" class="form-label">Ciudad *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="city"
+                  [(ngModel)]="newCustomer.city"
+                  name="city"
+                  required
+                  placeholder="Ej: Córdoba"
+                />
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="state" class="form-label">Provincia *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="state"
+                  [(ngModel)]="newCustomer.state"
+                  name="state"
+                  required
+                  placeholder="Ej: Córdoba"
+                />
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="country" class="form-label">País *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="country"
+                  [(ngModel)]="newCustomer.country"
+                  name="country"
+                  required
+                  placeholder="Ej: Argentina"
+                />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="doorbell" class="form-label">Timbre *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="doorbell"
+                  [(ngModel)]="newCustomer.doorbell"
+                  name="doorbell"
+                  required
+                  placeholder="Ej: 3A"
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="type" class="form-label">Tipo de Cliente</label>
+                <select
+                  class="form-select"
+                  id="type"
+                  [(ngModel)]="newCustomer.type"
+                  name="type"
+                >
+                  <option value="">Selecciona un tipo</option>
+                  <option value="Regular">Regular</option>
+                  <option value="Premium">Premium</option>
+                  <option value="Corporativo">Corporativo</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="notes" class="form-label">Notas</label>
+              <textarea
+                class="form-control"
+                id="notes"
+                [(ngModel)]="newCustomer.notes"
+                name="notes"
+                rows="3"
+                placeholder="Notas adicionales sobre el cliente..."
+              ></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeCreateCustomerModal()" [disabled]="isCreating">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" (click)="createCustomer()" [disabled]="isCreating || !isFormValid()">
+            <span *ngIf="!isCreating">Crear Cliente</span>
+            <span *ngIf="isCreating">
+              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Creando...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar Cliente -->
+  <div class="modal fade" [class.show]="showEditModal" [style.display]="showEditModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showEditModal" (click)="closeEditCustomerModal()"></div>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <svg class="me-2" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline-block; vertical-align: middle;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            </svg>
+            Editar Cliente
+          </h5>
+          <button type="button" class="btn-close" (click)="closeEditCustomerModal()"></button>
+        </div>
+        <div class="modal-body">
+          <form (ngSubmit)="saveEditCustomer()" #editForm="ngForm">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="editName" class="form-label">Nombre Completo *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editName"
+                  [(ngModel)]="editCustomer.name"
+                  name="name"
+                  required
+                  placeholder="Ej: Juan Pérez"
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="editEmail" class="form-label">Email *</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  id="editEmail"
+                  [(ngModel)]="editCustomer.email"
+                  name="email"
+                  required
+                  placeholder="cliente@example.com"
+                />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="editPhoneNumber" class="form-label">Teléfono *</label>
+                <input
+                  type="tel"
+                  class="form-control"
+                  id="editPhoneNumber"
+                  [(ngModel)]="editCustomer.phoneNumber"
+                  name="phoneNumber"
+                  required
+                  placeholder="Ej: 3512345678"
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="editPostalCode" class="form-label">Código Postal *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editPostalCode"
+                  [(ngModel)]="editCustomer.postalCode"
+                  name="postalCode"
+                  required
+                  placeholder="Ej: 5000"
+                />
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="editAddress" class="form-label">Dirección *</label>
+              <input
+                type="text"
+                class="form-control"
+                id="editAddress"
+                [(ngModel)]="editCustomer.address"
+                name="address"
+                required
+                placeholder="Ej: Av. Colón 1234"
+              />
+            </div>
+
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="editCity" class="form-label">Ciudad *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editCity"
+                  [(ngModel)]="editCustomer.city"
+                  name="city"
+                  required
+                  placeholder="Ej: Córdoba"
+                />
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="editState" class="form-label">Provincia *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editState"
+                  [(ngModel)]="editCustomer.state"
+                  name="state"
+                  required
+                  placeholder="Ej: Córdoba"
+                />
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="editCountry" class="form-label">País *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editCountry"
+                  [(ngModel)]="editCustomer.country"
+                  name="country"
+                  required
+                  placeholder="Ej: Argentina"
+                />
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="editDoorbell" class="form-label">Timbre *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="editDoorbell"
+                  [(ngModel)]="editCustomer.doorbell"
+                  name="doorbell"
+                  required
+                  placeholder="Ej: 3A"
+                />
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="editType" class="form-label">Tipo de Cliente</label>
+                <select
+                  class="form-select"
+                  id="editType"
+                  [(ngModel)]="editCustomer.type"
+                  name="type"
+                >
+                  <option value="">Selecciona un tipo</option>
+                  <option value="Regular">Regular</option>
+                  <option value="Premium">Premium</option>
+                  <option value="Corporativo">Corporativo</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="editNotes" class="form-label">Notas</label>
+              <textarea
+                class="form-control"
+                id="editNotes"
+                [(ngModel)]="editCustomer.notes"
+                name="notes"
+                rows="3"
+                placeholder="Notas adicionales sobre el cliente..."
+              ></textarea>
+            </div>
+
+            <div class="mb-3 form-check">
+              <input
+                type="checkbox"
+                class="form-check-input"
+                id="editIsActive"
+                [(ngModel)]="editCustomer.isActive"
+                name="isActive"
+              />
+              <label class="form-check-label" for="editIsActive">
+                Cliente Activo
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeEditCustomerModal()" [disabled]="isCreating">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary" (click)="saveEditCustomer()" [disabled]="isCreating || !isEditFormValid()">
+            <span *ngIf="!isCreating">Guardar Cambios</span>
+            <span *ngIf="isCreating">
+              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Guardando...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Eliminar Cliente -->
+  <div class="modal fade" [class.show]="showDeleteModal" [style.display]="showDeleteModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showDeleteModal" (click)="closeDeleteModal()"></div>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-bottom-0">
+          <h5 class="modal-title text-danger">
+            <svg class="me-2" width="24" height="24" fill="currentColor" viewBox="0 0 20 20" style="display: inline-block; vertical-align: middle;">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            Confirmar Eliminación
+          </h5>
+          <button type="button" class="btn-close" (click)="closeDeleteModal()"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-3">¿Estás seguro de que deseas eliminar al cliente <strong>{{ customerToDelete?.nombre }}</strong>?</p>
+          <div class="alert alert-warning d-flex align-items-start">
+            <svg class="me-2 flex-shrink-0" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+            </svg>
+            <div>
+              <strong>Advertencia:</strong> Esta acción no se puede deshacer.
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeDeleteModal()" [disabled]="isDeleting">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-danger" (click)="confirmDelete()" [disabled]="isDeleting">
+            <span *ngIf="!isDeleting">Eliminar</span>
+            <span *ngIf="isDeleting">
+              <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Eliminando...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

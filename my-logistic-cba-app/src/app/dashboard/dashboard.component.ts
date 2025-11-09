@@ -39,7 +39,14 @@ import { Role } from '../models/user.model';
             <span>Pedidos</span>
           </a>
 
-          <a [routerLink]="['/dashboard/productos']" routerLinkActive="active" class="nav-item">
+          <a [routerLink]="['/dashboard/clientes']" routerLinkActive="active" class="nav-item">
+            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <span>Clientes</span>
+          </a>
+
+          <a *ngIf="!isDealer()" [routerLink]="['/dashboard/productos']" routerLinkActive="active" class="nav-item">
             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8.01-4.1a2 2 0 00-1.98 0L2 7v10a2 2 0 002 2h16a2 2 0 002-2V7zM12 2v10m0 0L6 8m6 4l6-4"></path>
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l9-5 9 5M5 10h14"></path>
@@ -117,6 +124,46 @@ import { Role } from '../models/user.model';
         <!-- Content Area -->
         <div class="content-area">
           <router-outlet></router-outlet>
+        </div>
+      </div>
+
+      <!-- Modal Cerrar Sesión -->
+      <div class="modal fade" [class.show]="showLogoutModal" [style.display]="showLogoutModal ? 'block' : 'none'" tabindex="-1">
+        <div class="modal-backdrop fade" [class.show]="showLogoutModal" (click)="cancelLogout()"></div>
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header border-bottom-0">
+              <h5 class="modal-title">
+                <svg class="me-2" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline-block; vertical-align: middle;">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+                Cerrar Sesión
+              </h5>
+              <button type="button" class="btn-close" (click)="cancelLogout()"></button>
+            </div>
+            <div class="modal-body">
+              <p class="mb-3">¿Estás seguro que deseas cerrar sesión?</p>
+              <div class="alert alert-info d-flex align-items-start">
+                <svg class="me-2 flex-shrink-0" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <div>
+                  <strong>{{ username }}</strong>, tu sesión se cerrará y deberás volver a iniciar sesión para acceder.
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" (click)="cancelLogout()">
+                Cancelar
+              </button>
+              <button type="button" class="btn btn-danger" (click)="confirmLogout()">
+                <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline-block; vertical-align: middle;">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+                Cerrar Sesión
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -347,6 +394,173 @@ import { Role } from '../models/user.model';
       padding: 24px;
     }
 
+    /* Modal styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1055;
+      width: 100%;
+      height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      outline: 0;
+    }
+
+    .modal.show {
+      display: block !important;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1050;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-dialog {
+      position: relative;
+      width: auto;
+      margin: 1.75rem auto;
+      max-width: 500px;
+      z-index: 1056;
+    }
+
+    .modal-content {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      background-color: #fff;
+      background-clip: padding-box;
+      border: 1px solid rgba(0,0,0,.2);
+      border-radius: 12px;
+      outline: 0;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1.25rem;
+      display: flex;
+      align-items: center;
+      color: #1f2937;
+    }
+
+    .modal-body {
+      position: relative;
+      flex: 1 1 auto;
+      padding: 1.5rem;
+    }
+
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #e5e7eb;
+      gap: 0.5rem;
+    }
+
+    .btn-close {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 0;
+      width: 1em;
+      height: 1em;
+    }
+
+    .btn-close:hover {
+      color: #000;
+    }
+
+    .btn-close::before {
+      content: "×";
+      display: block;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .btn-secondary:hover {
+      background: #d1d5db;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .alert-info {
+      background-color: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+    }
+
+    .d-flex {
+      display: flex;
+    }
+
+    .align-items-start {
+      align-items: flex-start;
+    }
+
+    .me-2 {
+      margin-right: 8px;
+    }
+
+    .mb-3 {
+      margin-bottom: 16px;
+    }
+
+    .flex-shrink-0 {
+      flex-shrink: 0;
+    }
+
+    .border-bottom-0 {
+      border-bottom: none !important;
+    }
+
     /* Mobile */
     @media (max-width: 768px) {
       .sidebar {
@@ -376,6 +590,7 @@ export class DashboardComponent implements OnInit {
   userRole: string = 'Usuario';
   sidebarOpen: boolean = false;
   currentPageTitle: string = 'Inicio';
+  showLogoutModal: boolean = false;
 
   constructor(
     private router: Router,
@@ -432,9 +647,16 @@ export class DashboardComponent implements OnInit {
   }
 
   logout(): void {
-    if (confirm('¿Estás seguro que deseas cerrar sesión?')) {
-      localStorage.clear();
-      this.router.navigate(['/login']);
-    }
+    this.showLogoutModal = true;
+  }
+
+  cancelLogout(): void {
+    this.showLogoutModal = false;
+  }
+
+  confirmLogout(): void {
+    this.showLogoutModal = false;
+    localStorage.clear();
+    this.router.navigate(['/login']);
   }
 }

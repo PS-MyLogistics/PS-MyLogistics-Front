@@ -17,3 +17,27 @@ export interface OrderCreatedResponse {
   orderId: string;
   orderNumber: string;
 }
+
+export interface OrderItem {
+  productId: string;
+  productName?: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  tenantId: string;
+  customerId: string;
+  customerName?: string;
+  customerAddress?: string;
+  customerCity?: string;
+  items: OrderItem[];
+  totalAmount: number;
+  status: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt?: string;
+}

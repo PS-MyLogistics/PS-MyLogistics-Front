@@ -64,6 +64,8 @@ import { UserService } from '../services/user.service';
                   <button type="button" class="btn-close" (click)="successMessage = ''" aria-label="Close"></button>
                 </div>
 
+                <!-- Formulario de Login -->
+                <form (ngSubmit)="onSubmit()">
                 <!-- Nombre del Tenant -->
                 <div class="mb-3">
                   <label for="tenantName" class="form-label fw-semibold">Empresa / Tenant</label>
@@ -77,6 +79,7 @@ import { UserService } from '../services/user.service';
                       type="text"
                       class="form-control"
                       id="tenantName"
+                      name="tenantName"
                       [(ngModel)]="tenantName"
                       placeholder="nombre-empresa"
                       required
@@ -98,6 +101,7 @@ import { UserService } from '../services/user.service';
                       type="text"
                       class="form-control"
                       id="username"
+                      name="username"
                       [(ngModel)]="username"
                       placeholder="tu_usuario"
                       required
@@ -119,6 +123,7 @@ import { UserService } from '../services/user.service';
                       [type]="showPassword ? 'text' : 'password'"
                       class="form-control"
                       id="password"
+                      name="password"
                       [(ngModel)]="password"
                       placeholder="••••••••"
                       required
@@ -167,9 +172,8 @@ import { UserService } from '../services/user.service';
 
                 <!-- Botón de login -->
                 <button
-                  type="button"
+                  type="submit"
                   class="btn btn-primary btn-lg w-100 mb-3 btn-gradient"
-                  (click)="onSubmit()"
                   [disabled]="isLoading || !tenantName || !username || !password"
                 >
                   <span *ngIf="!isLoading">Iniciar Sesión</span>
@@ -178,6 +182,7 @@ import { UserService } from '../services/user.service';
                     Iniciando sesión...
                   </span>
                 </button>
+                </form>
 
                 <!-- Registro -->
                 <div class="text-center">

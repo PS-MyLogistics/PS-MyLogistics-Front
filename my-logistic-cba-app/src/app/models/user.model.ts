@@ -18,6 +18,9 @@ export interface UserDto {
   username: string;
   email: string;
   telephone?: string;
+  address?: string;
+  city?: string;
+  stateOrProvince?: string;
   roles: Role[];
   owner: boolean;
   status: UserStatus;
