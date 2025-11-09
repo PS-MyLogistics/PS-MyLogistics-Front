@@ -1,13 +1,13 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService, RegisterOwnerRequest } from '../services/auth.service';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="register-wrapper">
       <div class="container">
@@ -25,13 +25,39 @@ import { AuthService, RegisterOwnerRequest } from '../services/auth.service';
               <!-- Body -->
               <div class="card-body p-4">
                 <!-- Alertas -->
-                <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
-                  <strong>Error:</strong> {{ errorMessage }}
-                  <button type="button" class="btn-close" (click)="errorMessage = ''" aria-label="Close"></button>
+                <div *ngIf="errorMessage" class="alert alert-dismissible fade show" role="alert"
+                     [ngClass]="{
+                       'alert-danger': errorType === 'error',
+                       'alert-warning': errorType === 'warning',
+                       'alert-info': errorType === 'info'
+                     }">
+                  <div class="d-flex align-items-start">
+                    <svg *ngIf="errorType === 'error'" class="icon-alert me-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                    </svg>
+                    <svg *ngIf="errorType === 'warning'" class="icon-alert me-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <svg *ngIf="errorType === 'info'" class="icon-alert me-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div class="flex-grow-1">
+                      <strong *ngIf="errorType === 'error'">Error:</strong>
+                      <strong *ngIf="errorType === 'warning'">Atención:</strong>
+                      <strong *ngIf="errorType === 'info'">Información:</strong>
+                      {{ errorMessage }}
+                    </div>
+                  </div>
+                  <button type="button" class="btn-close" (click)="clearError()" aria-label="Close"></button>
                 </div>
 
                 <div *ngIf="successMessage" class="alert alert-success alert-dismissible fade show" role="alert">
-                  {{ successMessage }}
+                  <div class="d-flex align-items-start">
+                    <svg class="icon-alert me-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div class="flex-grow-1">{{ successMessage }}</div>
+                  </div>
                   <button type="button" class="btn-close" (click)="successMessage = ''" aria-label="Close"></button>
                 </div>
 
@@ -266,7 +292,7 @@ import { AuthService, RegisterOwnerRequest } from '../services/auth.service';
                     [disabled]="isLoading"
                   />
                   <label class="form-check-label" for="acceptTerms">
-                    Acepto los <a href="#" class="text-decoration-none">términos y condiciones</a> y la <a href="#" class="text-decoration-none">política de privacidad</a> <span class="text-danger">*</span>
+                    Acepto los <a routerLink="/terms" class="text-decoration-none">términos y condiciones</a> y la <a routerLink="/privacy" class="text-decoration-none">política de privacidad</a> <span class="text-danger">*</span>
                   </label>
                 </div>
 
@@ -482,6 +508,12 @@ import { AuthService, RegisterOwnerRequest } from '../services/auth.service';
       border-radius: 8px;
     }
 
+    .icon-alert {
+      width: 20px;
+      height: 20px;
+      margin-top: 2px;
+    }
+
     @media (max-width: 768px) {
       .logo-circle-small {
         width: 200px;
@@ -526,10 +558,21 @@ export class RegisterComponent {
   acceptTerms: boolean = false;
   isLoading: boolean = false;
   errorMessage: string = '';
+  errorType: 'error' | 'warning' | 'info' = 'error';
   successMessage: string = '';
 
   togglePassword(): void {
     this.showPassword = !this.showPassword;
+  }
+
+  clearError(): void {
+    this.errorMessage = '';
+    this.errorType = 'error';
+  }
+
+  setError(message: string, type: 'error' | 'warning' | 'info' = 'error'): void {
+    this.errorMessage = message;
+    this.errorType = type;
   }
 
   isPasswordValid(): boolean {
@@ -557,33 +600,45 @@ export class RegisterComponent {
 
   onSubmit(): void {
     if (!this.isFormValid()) {
-      this.errorMessage = 'Por favor completa todos los campos requeridos correctamente';
+      this.setError('Por favor completa todos los campos requeridos correctamente', 'warning');
       return;
     }
 
     this.isLoading = true;
-    this.errorMessage = '';
+    this.clearError();
     this.successMessage = '';
 
     this.authService.register(this.formData).subscribe({
       next: (response) => {
         this.isLoading = false;
-        
+
         if (response.success) {
           this.successMessage = '¡Registro exitoso! Revisa tu correo para verificar tu cuenta.';
-          
+
           this.resetForm();
-          
+
           setTimeout(() => {
             this.router.navigate(['/login']);
           }, 3000);
         } else {
-          this.errorMessage = response.message || 'Error al registrar la cuenta';
+          this.setError(response.message || 'Error al registrar la cuenta', 'error');
         }
       },
       error: (error) => {
         this.isLoading = false;
-        this.errorMessage = error.message || 'Error al registrar. Por favor intenta nuevamente.';
+
+        // Clasificar el tipo de error según el mensaje
+        const errorMsg = error.message || 'Error al registrar. Por favor intenta nuevamente.';
+
+        if (errorMsg.includes('ya existe') || errorMsg.includes('already exists')) {
+          this.setError(errorMsg, 'warning');
+        } else if (errorMsg.includes('Datos inválidos') || errorMsg.includes('inválido')) {
+          this.setError(errorMsg, 'error');
+        } else if (errorMsg.includes('No se pudo conectar')) {
+          this.setError(errorMsg, 'error');
+        } else {
+          this.setError(errorMsg, 'error');
+        }
       }
     });
   }

@@ -1,27 +1,27 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { AuthService, LoginRequest } from '../services/auth.service';
+import { AuthService } from '../services/auth.service';
 
 @Component({
-  selector: 'app-login',
+  selector: 'app-confirm-reset-password',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="login-wrapper">
+    <div class="confirm-reset-wrapper">
       <div class="container">
         <div class="row justify-content-center align-items-center min-vh-100">
           <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
             <div class="card shadow-lg border-0">
               <!-- Header -->
               <div class="card-header bg-gradient text-white text-center py-4">
-                <!-- Logo redondo -->
                 <div class="logo-circle mx-auto mb-3">
-                  <!-- Reemplaza con tu imagen: <img src="assets/logo.png" alt="Logo" class="logo-img rounded-circle" /> -->
-                    <img src="logo.png" alt="Logo" class="logo-img rounded-circle" />
+                  <svg class="logo-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                  </svg>
                 </div>
-                <h5 class="text-black">Ingresa a tu cuenta</h5>
+                <h5 class="text-black">Restablecer Contraseña</h5>
               </div>
 
               <!-- Body -->
@@ -30,8 +30,7 @@ import { AuthService, LoginRequest } from '../services/auth.service';
                 <div *ngIf="errorMessage" class="alert alert-dismissible fade show" role="alert"
                      [ngClass]="{
                        'alert-danger': errorType === 'error',
-                       'alert-warning': errorType === 'warning',
-                       'alert-info': errorType === 'info'
+                       'alert-warning': errorType === 'warning'
                      }">
                   <div class="d-flex align-items-start">
                     <svg *ngIf="errorType === 'error'" class="icon-alert me-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -40,13 +39,9 @@ import { AuthService, LoginRequest } from '../services/auth.service';
                     <svg *ngIf="errorType === 'warning'" class="icon-alert me-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                     </svg>
-                    <svg *ngIf="errorType === 'info'" class="icon-alert me-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                    </svg>
                     <div class="flex-grow-1">
                       <strong *ngIf="errorType === 'error'">Error:</strong>
                       <strong *ngIf="errorType === 'warning'">Atención:</strong>
-                      <strong *ngIf="errorType === 'info'">Información:</strong>
                       {{ errorMessage }}
                     </div>
                   </div>
@@ -63,62 +58,60 @@ import { AuthService, LoginRequest } from '../services/auth.service';
                   <button type="button" class="btn-close" (click)="successMessage = ''" aria-label="Close"></button>
                 </div>
 
-                <!-- Nombre del Tenant -->
-                <div class="mb-3">
-                  <label for="tenantName" class="form-label fw-semibold">Empresa / Tenant</label>
-                  <div class="input-group">
-                    <span class="input-group-text bg-white">
-                      <svg class="icon-input" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                      </svg>
-                    </span>
-                    <input
-                      type="text"
-                      class="form-control"
-                      id="tenantName"
-                      [(ngModel)]="tenantName"
-                      placeholder="nombre-empresa"
-                      required
-                      [disabled]="isLoading"
-                    />
-                  </div>
+                <!-- Instrucciones -->
+                <div class="alert alert-info mb-4">
+                  <strong>Instrucciones:</strong>
+                  <p class="mb-2 mt-2">Pegue el código de reseteo que recibió por correo electrónico y defina su nueva contraseña.</p>
+                  <p class="mb-0"><small>El código tiene una validez de 15 minutos.</small></p>
                 </div>
 
-                <!-- Usuario -->
+                <!-- Token de reseteo -->
                 <div class="mb-3">
-                  <label for="username" class="form-label fw-semibold">Usuario</label>
-                  <div class="input-group">
-                    <span class="input-group-text bg-white">
-                      <svg class="icon-input" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                      </svg>
-                    </span>
-                    <input
-                      type="text"
-                      class="form-control"
-                      id="username"
-                      [(ngModel)]="username"
-                      placeholder="tu_usuario"
-                      required
-                      [disabled]="isLoading"
-                    />
-                  </div>
-                </div>
-
-                <!-- Contraseña -->
-                <div class="mb-3">
-                  <label for="password" class="form-label fw-semibold">Contraseña</label>
+                  <label for="resetToken" class="form-label fw-semibold">Código de Reseteo <span class="text-danger">*</span></label>
                   <div class="input-group">
                     <span class="input-group-text bg-white">
                       <svg class="icon-input" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                       </svg>
                     </span>
+                    <textarea
+                      class="form-control"
+                      id="resetToken"
+                      [(ngModel)]="resetToken"
+                      placeholder="Pegue aquí el código JWT completo que recibió por email"
+                      rows="4"
+                      required
+                      [disabled]="isLoading"
+                    ></textarea>
+                  </div>
+                  <small class="text-muted">El código comienza con: eyJhbGciOi...</small>
+                </div>
+
+                <!-- Información de validación de contraseña -->
+                <div class="alert alert-secondary mb-3">
+                  <strong>Requisitos de contraseña:</strong>
+                  <ul class="mb-0 mt-2 small">
+                    <li>Mínimo 8 caracteres</li>
+                    <li>Al menos una letra minúscula</li>
+                    <li>Al menos una letra mayúscula</li>
+                    <li>Al menos un carácter especial</li>
+                  </ul>
+                </div>
+
+                <!-- Nueva contraseña -->
+                <div class="mb-3">
+                  <label for="newPassword" class="form-label fw-semibold">Nueva Contraseña <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white">
+                      <svg class="icon-input" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
+                      </svg>
+                    </span>
                     <input
                       [type]="showPassword ? 'text' : 'password'"
                       class="form-control"
-                      id="password"
-                      [(ngModel)]="password"
+                      id="newPassword"
+                      [(ngModel)]="newPassword"
                       placeholder="••••••••"
                       required
                       [disabled]="isLoading"
@@ -138,56 +131,76 @@ import { AuthService, LoginRequest } from '../services/auth.service';
                       </svg>
                     </button>
                   </div>
+                  <div *ngIf="newPassword" class="mt-2">
+                    <small [class.text-success]="isPasswordValid()" [class.text-danger]="!isPasswordValid()">
+                      {{ isPasswordValid() ? '✓ Contraseña válida' : '✗ Contraseña no cumple los requisitos' }}
+                    </small>
+                  </div>
                 </div>
 
-                <!-- Recordarme y Olvidé contraseña -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                  <div class="form-check">
+                <!-- Confirmar contraseña -->
+                <div class="mb-4">
+                  <label for="confirmPassword" class="form-label fw-semibold">Confirmar Contraseña <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <span class="input-group-text bg-white">
+                      <svg class="icon-input" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                      </svg>
+                    </span>
                     <input
-                      class="form-check-input"
-                      type="checkbox"
-                      id="rememberMe"
-                      [(ngModel)]="rememberMe"
+                      [type]="showConfirmPassword ? 'text' : 'password'"
+                      class="form-control"
+                      id="confirmPassword"
+                      [(ngModel)]="confirmPassword"
+                      placeholder="••••••••"
+                      required
                       [disabled]="isLoading"
                     />
-                    <label class="form-check-label" for="rememberMe">
-                      Recordarme
-                    </label>
+                    <button
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      (click)="toggleConfirmPassword()"
+                      [disabled]="isLoading"
+                    >
+                      <svg *ngIf="!showConfirmPassword" class="icon-input" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                      </svg>
+                      <svg *ngIf="showConfirmPassword" class="icon-input" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>
+                      </svg>
+                    </button>
                   </div>
-                  <button 
-                    type="button"
-                    class="btn btn-link p-0 text-decoration-none"
-                    (click)="forgotPassword()"
-                    [disabled]="isLoading"
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </button>
+                  <div *ngIf="confirmPassword" class="mt-2">
+                    <small [class.text-success]="passwordsMatch()" [class.text-danger]="!passwordsMatch()">
+                      {{ passwordsMatch() ? '✓ Las contraseñas coinciden' : '✗ Las contraseñas no coinciden' }}
+                    </small>
+                  </div>
                 </div>
 
-                <!-- Botón de login -->
+                <!-- Botón de confirmación -->
                 <button
                   type="button"
                   class="btn btn-primary btn-lg w-100 mb-3 btn-gradient"
                   (click)="onSubmit()"
-                  [disabled]="isLoading || !tenantName || !username || !password"
+                  [disabled]="isLoading || !isFormValid()"
                 >
-                  <span *ngIf="!isLoading">Iniciar Sesión</span>
+                  <span *ngIf="!isLoading">Restablecer Contraseña</span>
                   <span *ngIf="isLoading">
                     <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Iniciando sesión...
+                    Procesando...
                   </span>
                 </button>
 
-                <!-- Registro -->
+                <!-- Volver al login -->
                 <div class="text-center">
-                  <span class="text-muted">¿No tienes cuenta? </span>
-                  <button 
+                  <button
                     type="button"
                     class="btn btn-link p-0 text-decoration-none"
-                    (click)="goToRegister()"
+                    (click)="goToLogin()"
                     [disabled]="isLoading"
                   >
-                    Regístrate aquí
+                    ← Volver al inicio de sesión
                   </button>
                 </div>
               </div>
@@ -203,14 +216,14 @@ import { AuthService, LoginRequest } from '../services/auth.service';
     </div>
   `,
   styles: [`
-    .login-wrapper {
+    .confirm-reset-wrapper {
       background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #4338ca 100%);
       min-height: 100vh;
       position: relative;
       overflow: hidden;
     }
 
-    .login-wrapper::before {
+    .confirm-reset-wrapper::before {
       content: '';
       position: absolute;
       top: -50%;
@@ -238,8 +251,8 @@ import { AuthService, LoginRequest } from '../services/auth.service';
     }
 
     .logo-circle {
-      width: 280px;
-      height: 280px;
+      width: 100px;
+      height: 100px;
       background: white;
       border-radius: 50%;
       display: flex;
@@ -249,16 +262,9 @@ import { AuthService, LoginRequest } from '../services/auth.service';
     }
 
     .logo-icon {
-      width: 140px;
-      height: 140px;
+      width: 50px;
+      height: 50px;
       color: #2563eb;
-    }
-
-    .logo-img {
-      width: 260px;
-      height: 260px;
-      object-fit: cover;
-      padding: 10px;
     }
 
     .icon-input {
@@ -267,15 +273,21 @@ import { AuthService, LoginRequest } from '../services/auth.service';
       color: #6c757d;
     }
 
+    .icon-alert {
+      width: 20px;
+      height: 20px;
+      margin-top: 2px;
+    }
+
     .input-group-text {
       border-right: none;
     }
 
-    .input-group .form-control {
+    .input-group .form-control, .input-group textarea {
       border-left: none;
     }
 
-    .input-group .form-control:focus {
+    .input-group .form-control:focus, .input-group textarea:focus {
       border-color: #ced4da;
       box-shadow: none;
     }
@@ -284,8 +296,14 @@ import { AuthService, LoginRequest } from '../services/auth.service';
       border-color: #86b7fe;
     }
 
-    .input-group:focus-within .form-control {
+    .input-group:focus-within .form-control, .input-group:focus-within textarea {
       border-color: #86b7fe;
+    }
+
+    textarea.form-control {
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      resize: none;
     }
 
     .btn-gradient {
@@ -323,11 +341,6 @@ import { AuthService, LoginRequest } from '../services/auth.service';
       border-top: 1px solid rgba(0, 0, 0, 0.05);
     }
 
-    .form-check-input:checked {
-      background-color: #2563eb;
-      border-color: #2563eb;
-    }
-
     .shadow-lg {
       box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.175) !important;
     }
@@ -336,51 +349,54 @@ import { AuthService, LoginRequest } from '../services/auth.service';
       font-size: 0.9rem;
     }
 
-    .icon-alert {
-      width: 20px;
-      height: 20px;
-      margin-top: 2px;
-    }
-
     @media (max-width: 576px) {
       .card-body {
         padding: 1.5rem !important;
       }
 
       .logo-circle {
-        width: 200px;
-        height: 200px;
+        width: 80px;
+        height: 80px;
       }
 
       .logo-icon {
-        width: 100px;
-        height: 100px;
-      }
-
-      .logo-img {
-        width: 180px;
-        height: 180px;
+        width: 40px;
+        height: 40px;
       }
     }
   `]
 })
-export class LoginComponent {
+export class ConfirmResetPasswordComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
-  tenantName: string = '';
+  resetToken: string = '';
+  newPassword: string = '';
+  confirmPassword: string = '';
   username: string = '';
-  password: string = '';
+  tenantName: string = '';
   showPassword: boolean = false;
-  rememberMe: boolean = false;
+  showConfirmPassword: boolean = false;
   isLoading: boolean = false;
   errorMessage: string = '';
-  errorType: 'error' | 'warning' | 'info' = 'error';
+  errorType: 'error' | 'warning' = 'error';
   successMessage: string = '';
+
+  ngOnInit(): void {
+    // Obtener username y tenantName de los query params
+    this.route.queryParams.subscribe(params => {
+      this.username = params['username'] || '';
+      this.tenantName = params['tenantName'] || '';
+    });
+  }
 
   togglePassword(): void {
     this.showPassword = !this.showPassword;
+  }
+
+  toggleConfirmPassword(): void {
+    this.showConfirmPassword = !this.showConfirmPassword;
   }
 
   clearError(): void {
@@ -388,15 +404,39 @@ export class LoginComponent {
     this.errorType = 'error';
   }
 
-  setError(message: string, type: 'error' | 'warning' | 'info' = 'error'): void {
+  setError(message: string, type: 'error' | 'warning' = 'error'): void {
     this.errorMessage = message;
     this.errorType = type;
   }
 
+  isPasswordValid(): boolean {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^_&*(),.?":{}|<>]).{8,}$/;
+    return passwordRegex.test(this.newPassword);
+  }
+
+  passwordsMatch(): boolean {
+    return this.newPassword === this.confirmPassword && this.confirmPassword !== '';
+  }
+
+  isFormValid(): boolean {
+    return !!(
+      this.resetToken.trim() &&
+      this.newPassword &&
+      this.confirmPassword &&
+      this.isPasswordValid() &&
+      this.passwordsMatch()
+    );
+  }
+
   onSubmit(): void {
-    // Validaciones
-    if (!this.tenantName || !this.username || !this.password) {
-      this.setError('Por favor completa todos los campos', 'warning');
+    if (!this.isFormValid()) {
+      this.setError('Por favor completa todos los campos correctamente', 'warning');
+      return;
+    }
+
+    // Validar que tenemos username y tenantName
+    if (!this.username || !this.tenantName) {
+      this.setError('Faltan datos de usuario. Por favor solicita el enlace de recuperación nuevamente.', 'error');
       return;
     }
 
@@ -404,45 +444,34 @@ export class LoginComponent {
     this.clearError();
     this.successMessage = '';
 
-    const loginRequest: LoginRequest = {
-      username: this.username,
-      password: this.password,
-      tenantName: this.tenantName
-    };
+    console.log('Enviando solicitud con token:', this.resetToken.trim().substring(0, 20) + '...');
+    console.log('Username:', this.username, 'TenantName:', this.tenantName);
 
-    this.authService.login(loginRequest).subscribe({
+    this.authService.confirmResetPassword(this.resetToken.trim(), this.newPassword, this.username, this.tenantName).subscribe({
       next: (response) => {
         this.isLoading = false;
+        console.log('Respuesta exitosa:', response);
 
         if (response.success) {
-          this.successMessage = 'Inicio de sesión exitoso. Redirigiendo...';
+          this.successMessage = '¡Contraseña restablecida exitosamente! Redirigiendo al login...';
 
-          // Guardar tenantName si "Recordarme" está activo
-          if (this.rememberMe) {
-            localStorage.setItem('tenantName', this.tenantName);
-            localStorage.setItem('username', this.username);
-          }
-
-          // Redirigir al dashboard después de 1 segundo
+          // Redirigir al login después de 2 segundos
           setTimeout(() => {
-            this.router.navigate(['/dashboard']);
-          }, 1000);
+            this.router.navigate(['/login']);
+          }, 2000);
         } else {
-          this.setError(response.message || 'Error al iniciar sesión', 'error');
+          this.setError(response.message || 'Error al restablecer la contraseña', 'error');
         }
       },
       error: (error) => {
         this.isLoading = false;
+        console.error('Error completo:', error);
+        console.error('Error response:', error.error);
 
-        // Clasificar el tipo de error según el mensaje
-        const errorMsg = error.message || 'Error de conexión. Verifica tus credenciales.';
+        const errorMsg = error.message || 'Error al restablecer la contraseña';
 
-        if (errorMsg.includes('pendiente de verificación') || errorMsg.includes('pending verification')) {
-          this.setError(errorMsg, 'warning');
-        } else if (errorMsg.includes('Contraseña incorrecta') || errorMsg.includes('Credenciales inválidas')) {
-          this.setError(errorMsg, 'error');
-        } else if (errorMsg.includes('No se pudo conectar')) {
-          this.setError(errorMsg, 'error');
+        if (errorMsg.includes('expirado') || errorMsg.includes('expired') || errorMsg.includes('inválido') || errorMsg.includes('invalid')) {
+          this.setError('El código ha expirado o es inválido. Solicita uno nuevo.', 'warning');
         } else {
           this.setError(errorMsg, 'error');
         }
@@ -450,57 +479,7 @@ export class LoginComponent {
     });
   }
 
-  forgotPassword(): void {
-    if (!this.tenantName || !this.username) {
-      this.setError('Por favor ingresa tu empresa/tenant y usuario para recuperar tu contraseña', 'warning');
-      return;
-    }
-
-    this.isLoading = true;
-    this.clearError();
-
-    // Primero obtener el email enmascarado
-    this.authService.getMaskedEmail(this.username, this.tenantName).subscribe({
-      next: (response) => {
-        this.isLoading = false;
-        if (response.success) {
-          // Navegar a página de recuperación de contraseña con el email enmascarado
-          this.router.navigate(['/reset-password'], {
-            queryParams: {
-              username: this.username,
-              tenantName: this.tenantName,
-              maskedEmail: response.mailEncoded
-            }
-          });
-        }
-      },
-      error: (error) => {
-        this.isLoading = false;
-        this.setError(error.message || 'No se pudo recuperar la información del usuario', 'error');
-      }
-    });
-  }
-
-  goToRegister(): void {
-    this.router.navigate(['/register']);
-  }
-
-  ngOnInit(): void {
-    // Cargar datos guardados si existen
-    const savedTenant = localStorage.getItem('tenantName');
-    const savedUsername = localStorage.getItem('username');
-
-    if (savedTenant && savedUsername) {
-      this.tenantName = savedTenant;
-      this.username = savedUsername;
-      this.rememberMe = true;
-    }
-
-    // Verificar si hay mensaje de sesión expirada
-    this.route.queryParams.subscribe(params => {
-      if (params['sessionExpired'] === 'true') {
-        this.setError('Tu sesión ha expirado. Por favor inicia sesión nuevamente.', 'warning');
-      }
-    });
+  goToLogin(): void {
+    this.router.navigate(['/login']);
   }
 }

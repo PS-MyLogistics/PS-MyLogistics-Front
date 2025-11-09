@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { UserService } from '../../../services/user.service';
+import { UserDto } from '../../../models/user.model';
 
 @Component({
   selector: 'app-usuarios-page',
@@ -225,15 +227,89 @@ import { FormsModule } from '@angular/forms';
     }
   `]
 })
-export class UsuariosPageComponent {
-  usuarios = [
-    { nombre: 'María Rodríguez', email: 'maria.r@logistic.com', rol: 'Administrador', rolColor: 'danger', estado: 'Activo', estadoColor: 'success', pedidos: 45, ultimoAcceso: 'Hoy', iniciales: 'MR' },
-    { nombre: 'Juan Pérez', email: 'juan.p@logistic.com', rol: 'Operador', rolColor: 'primary', estado: 'Activo', estadoColor: 'success', pedidos: 32, ultimoAcceso: 'Ayer', iniciales: 'JP' },
-    { nombre: 'Laura Sánchez', email: 'laura.s@logistic.com', rol: 'Usuario', rolColor: 'secondary', estado: 'Inactivo', estadoColor: 'warning', pedidos: 18, ultimoAcceso: '3 días', iniciales: 'LS' },
-    { nombre: 'Carlos Gómez', email: 'carlos.g@logistic.com', rol: 'Operador', rolColor: 'primary', estado: 'Activo', estadoColor: 'success', pedidos: 28, ultimoAcceso: 'Hoy', iniciales: 'CG' },
-    { nombre: 'Ana Martínez', email: 'ana.m@logistic.com', rol: 'Usuario', rolColor: 'secondary', estado: 'Activo', estadoColor: 'success', pedidos: 15, ultimoAcceso: '2 días', iniciales: 'AM' },
-    { nombre: 'Pedro López', email: 'pedro.l@logistic.com', rol: 'Administrador', rolColor: 'danger', estado: 'Activo', estadoColor: 'success', pedidos: 52, ultimoAcceso: 'Hoy', iniciales: 'PL' },
-    { nombre: 'Sofía Gómez', email: 'sofia.g@logistic.com', rol: 'Operador', rolColor: 'primary', estado: 'Activo', estadoColor: 'success', pedidos: 38, ultimoAcceso: 'Hoy', iniciales: 'SG' },
-    { nombre: 'Roberto Díaz', email: 'roberto.d@logistic.com', rol: 'Usuario', rolColor: 'secondary', estado: 'Inactivo', estadoColor: 'warning', pedidos: 12, ultimoAcceso: '5 días', iniciales: 'RD' }
-  ];
+export class UsuariosPageComponent implements OnInit {
+  private userService = inject(UserService);
+
+  usuarios: any[] = [];
+  usuariosOriginales: UserDto[] = [];
+  isLoading = false;
+  errorMessage = '';
+
+  ngOnInit(): void {
+    this.loadUsers();
+  }
+
+  loadUsers(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.userService.getAll().subscribe({
+      next: (users) => {
+        this.usuariosOriginales = users;
+        this.usuarios = users.map(user => ({
+          id: user.id,
+          nombre: user.username,
+          email: user.email,
+          rol: this.getRolDisplay(user.roles),
+          rolColor: this.getRolColor(user.roles),
+          estado: this.getEstadoDisplay(user.status),
+          estadoColor: this.getEstadoColor(user.status),
+          pedidos: 0, // TODO: Add pedidos count from backend
+          ultimoAcceso: 'N/A', // TODO: Add lastAccess from backend
+          iniciales: this.getInitials(user.username),
+          telephone: user.telephone
+        }));
+        this.isLoading = false;
+      },
+      error: (error) => {
+        this.errorMessage = error.message || 'Error al cargar usuarios';
+        this.isLoading = false;
+        console.error('Error loading users:', error);
+      }
+    });
+  }
+
+  getInitials(username: string): string {
+    const parts = username.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return username.substring(0, 2).toUpperCase();
+  }
+
+  getRolDisplay(roles: string[]): string {
+    if (roles.includes('OWNER') || roles.includes('SUPERADMIN')) return 'Administrador';
+    if (roles.includes('ADMIN')) return 'Admin';
+    if (roles.includes('DEALER')) return 'Operador';
+    return 'Usuario';
+  }
+
+  getRolColor(roles: string[]): string {
+    if (roles.includes('OWNER') || roles.includes('SUPERADMIN')) return 'danger';
+    if (roles.includes('ADMIN')) return 'warning';
+    if (roles.includes('DEALER')) return 'primary';
+    return 'secondary';
+  }
+
+  getEstadoDisplay(status: string): string {
+    const statusMap: { [key: string]: string } = {
+      'ACTIVE': 'Activo',
+      'PENDING_VERIFICATION': 'Pendiente',
+      'SUSPENDED': 'Suspendido',
+      'DELETED': 'Eliminado',
+      'FREEZED': 'Congelado'
+    };
+    return statusMap[status] || status;
+  }
+
+  getEstadoColor(status: string): string {
+    const colorMap: { [key: string]: string } = {
+      'ACTIVE': 'success',
+      'PENDING_VERIFICATION': 'warning',
+      'SUSPENDED': 'danger',
+      'DELETED': 'dark',
+      'FREEZED': 'info'
+    };
+    return colorMap[status] || 'secondary';
+  }
 }
