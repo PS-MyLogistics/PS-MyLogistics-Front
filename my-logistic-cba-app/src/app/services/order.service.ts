@@ -31,4 +31,18 @@ export class OrderService {
   createOrder(request: OrderCreationRequest): Observable<OrderCreatedResponse> {
     return this.http.post<OrderCreatedResponse>(`${this.apiUrl}/orders/create`, request);
   }
+
+  /**
+   * Update an order (for assigning dealer/vehicle)
+   */
+  updateOrder(orderId: string, updates: Partial<OrderCreationRequest>): Observable<Order> {
+    return this.http.put<Order>(`${this.apiUrl}/orders/update/${orderId}`, updates);
+  }
+
+  /**
+   * Assign dealer to order
+   */
+  assignDealer(orderId: string, dealerId: string, vehicleId?: string): Observable<Order> {
+    return this.updateOrder(orderId, { dealerId, vehicleId });
+  }
 }

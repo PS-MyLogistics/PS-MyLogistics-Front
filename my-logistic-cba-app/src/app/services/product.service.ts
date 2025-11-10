@@ -61,34 +61,41 @@ export class ProductService {
     if (error.error instanceof ErrorEvent) {
       errorMessage = `Error: ${error.error.message}`;
     } else {
-      switch (error.status) {
-        case 0:
-          errorMessage = 'No se pudo conectar al servidor. Verifica tu conexión a internet.';
-          break;
-        case 400:
-          errorMessage = error.error?.message || error.error?.error || 'Datos inválidos.';
-          break;
-        case 401:
-          errorMessage = 'No tienes autorización para realizar esta acción.';
-          break;
-        case 403:
-          errorMessage = error.error?.message || 'No tienes permisos para realizar esta acción.';
-          break;
-        case 404:
-          errorMessage = 'Producto no encontrado.';
-          break;
-        case 409:
-          errorMessage = error.error?.message || 'Ya existe un producto con esos datos.';
-          break;
-        case 500:
-          errorMessage = 'Error interno del servidor. Intenta nuevamente más tarde.';
-          break;
-        default:
-          errorMessage = error.error?.message || `Error del servidor: ${error.status}`;
+      // Check if it's a unique constraint violation for SKU
+      const errorString = JSON.stringify(error.error);
+      if (errorString.includes('UKQ1MAFXN973LDQ80M1IRP3MPVQ') ||
+          errorString.includes('Unique index or primary key violation') ||
+          errorString.includes('SKU')) {
+        errorMessage = 'Ya existe un producto con ese SKU. Por favor ingresa un SKU único o déjalo vacío solo si es el primer producto sin SKU.';
+      } else {
+        switch (error.status) {
+          case 0:
+            errorMessage = 'No se pudo conectar al servidor. Verifica tu conexión a internet.';
+            break;
+          case 400:
+            errorMessage = error.error?.message || error.error?.error || 'Datos inválidos.';
+            break;
+          case 401:
+            errorMessage = 'No tienes autorización para realizar esta acción.';
+            break;
+          case 403:
+            errorMessage = error.error?.message || 'No tienes permisos para realizar esta acción.';
+            break;
+          case 404:
+            errorMessage = 'Producto no encontrado.';
+            break;
+          case 409:
+            errorMessage = error.error?.message || 'Ya existe un producto con esos datos.';
+            break;
+          case 500:
+            errorMessage = error.error?.message || 'Error interno del servidor. Intenta nuevamente más tarde.';
+            break;
+          default:
+            errorMessage = error.error?.message || `Error del servidor: ${error.status}`;
+        }
       }
     }
 
-    console.error('Error en ProductService:', error);
     return throwError(() => new Error(errorMessage));
   }
 }

@@ -11,6 +11,8 @@ export interface OrderCreationRequest {
   items: OrderItemRequest[];
   notes?: string;
   customerCreationRequest?: CustomerCreationRequest;
+  dealerId?: string;
+  vehicleId?: string;
 }
 
 export interface OrderCreatedResponse {
@@ -40,4 +42,8 @@ export interface Order {
   notes?: string;
   createdAt: string;
   updatedAt?: string;
+  dealerId?: string;
+  dealerName?: string;
+  vehicleId?: string;
+  distributionId?: string;
 }

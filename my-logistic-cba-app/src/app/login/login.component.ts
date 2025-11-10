@@ -153,6 +153,7 @@ import { UserService } from '../services/user.service';
                       class="form-check-input"
                       type="checkbox"
                       id="rememberMe"
+                      name="rememberMe"
                       [(ngModel)]="rememberMe"
                       [disabled]="isLoading"
                     />

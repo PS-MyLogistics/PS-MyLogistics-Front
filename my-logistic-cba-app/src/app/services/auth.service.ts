@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { Observable, throwError, timer, Subscription } from 'rxjs';
+import { catchError, tap, switchMap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { environment } from '../enviroments/enviroment';
 import { Role } from '../models/user.model';
@@ -50,12 +50,15 @@ export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
   private apiUrl = environment.apiUrl;
+  private refreshTokenSubscription?: Subscription;
 
   register(registerData: RegisterOwnerRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.apiUrl}/auth/register`, registerData).pipe(
       tap(response => {
         if (response.success && response.token) {
           localStorage.setItem('authToken', response.token);
+          // Start automatic token refresh
+          this.scheduleTokenRefresh();
         }
       }),
       catchError(this.handleError)
@@ -70,6 +73,8 @@ export class AuthService {
         if (response.success && response.token) {
           // Guardar token en localStorage
           localStorage.setItem('authToken', response.token);
+          // Start automatic token refresh
+          this.scheduleTokenRefresh();
         }
       }),
       catchError(this.handleError)
@@ -81,6 +86,8 @@ export class AuthService {
       withCredentials: true
     }).pipe(
       tap(() => {
+        // Stop automatic token refresh before clearing session
+        this.stopTokenRefresh();
         this.clearSession();
       }),
       catchError(this.handleError)
@@ -131,6 +138,8 @@ export class AuthService {
   }
 
   clearSession(): void {
+    // Stop automatic token refresh
+    this.stopTokenRefresh();
     localStorage.removeItem('authToken');
     localStorage.removeItem('tenantName');
     localStorage.removeItem('userRoles');
@@ -156,6 +165,70 @@ export class AuthService {
     } catch (error) {
       console.error('Error decoding token:', error);
       return null;
+    }
+  }
+
+  /**
+   * Get token expiration time in milliseconds from now
+   * Returns null if token is invalid or already expired
+   */
+  private getTokenExpirationTime(): number | null {
+    const token = this.getToken();
+    if (!token) return null;
+
+    const decoded = this.decodeToken(token);
+    if (!decoded || !decoded.exp) return null;
+
+    // exp is in seconds, convert to milliseconds
+    const expirationTime = decoded.exp * 1000;
+    const currentTime = Date.now();
+    const timeUntilExpiration = expirationTime - currentTime;
+
+    // If already expired, return null
+    return timeUntilExpiration > 0 ? timeUntilExpiration : null;
+  }
+
+  /**
+   * Schedule automatic token refresh
+   * Refreshes 1 minute before expiration
+   */
+  private scheduleTokenRefresh(): void {
+    // Cancel any existing refresh subscription
+    this.stopTokenRefresh();
+
+    const timeUntilExpiration = this.getTokenExpirationTime();
+    if (!timeUntilExpiration) {
+      return;
+    }
+
+    // Schedule refresh 1 minute (60000ms) before expiration
+    // If token expires in less than 1 minute, refresh immediately
+    const refreshTime = Math.max(timeUntilExpiration - 60000, 0);
+
+    this.refreshTokenSubscription = timer(refreshTime).pipe(
+      switchMap(() => this.refreshToken())
+    ).subscribe({
+      next: (response) => {
+        if (response.success && response.token) {
+          // Schedule next refresh after successful refresh
+          this.scheduleTokenRefresh();
+        }
+      },
+      error: (error) => {
+        console.error('Token refresh failed:', error);
+        // If refresh fails, clear session and redirect to login
+        this.clearSession();
+      }
+    });
+  }
+
+  /**
+   * Stop automatic token refresh
+   */
+  private stopTokenRefresh(): void {
+    if (this.refreshTokenSubscription) {
+      this.refreshTokenSubscription.unsubscribe();
+      this.refreshTokenSubscription = undefined;
     }
   }
 

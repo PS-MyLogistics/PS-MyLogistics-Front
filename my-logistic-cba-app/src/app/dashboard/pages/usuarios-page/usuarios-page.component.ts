@@ -29,28 +29,58 @@ import { UserDto, RegisterUserInTenantRequest, EditUserInTenantRequest, Role } f
       <div class="card mb-4">
         <div class="card-body">
           <div class="row g-3">
-            <div class="col-md-8">
+            <div class="col-md-7">
               <div class="search-box">
                 <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                 </svg>
-                <input type="text" class="form-control ps-5" placeholder="Buscar usuarios...">
+                <input
+                  type="text"
+                  class="form-control ps-5"
+                  placeholder="Buscar por nombre, email..."
+                  [(ngModel)]="searchTerm"
+                  [ngModelOptions]="{standalone: true}"
+                  (ngModelChange)="applyFilters()"
+                >
               </div>
             </div>
             <div class="col-md-4">
-              <select class="form-select">
-                <option>Todos los roles</option>
-                <option>Administrador</option>
-                <option>Usuario</option>
-                <option>Operador</option>
+              <select class="form-select" [(ngModel)]="filtroRol" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
+                <option value="">Todos los roles</option>
+                <option value="ADMIN">Administrador</option>
+                <option value="DEALER">Operador</option>
               </select>
+            </div>
+            <div class="col-md-1">
+              <button class="btn btn-secondary w-100" (click)="limpiarFiltros()" title="Limpiar filtros">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
+      <!-- Loading state -->
+      <div *ngIf="isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-3 text-muted">Cargando usuarios...</p>
+      </div>
+
+      <!-- Empty state -->
+      <div *ngIf="!isLoading && usuariosFiltrados.length === 0" class="text-center py-5">
+        <svg class="mb-3" width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        <h6>No se encontraron usuarios</h6>
+        <p class="text-muted">{{ searchTerm || filtroRol ? 'Intenta ajustar los filtros' : 'Crea tu primer usuario para comenzar' }}</p>
+      </div>
+
       <!-- Tabla de Usuarios -->
-      <div class="card">
+      <div class="card" *ngIf="!isLoading && usuariosFiltrados.length > 0">
         <div class="card-body p-0">
           <div class="table-responsive">
             <table class="table table-hover mb-0">
@@ -66,7 +96,7 @@ import { UserDto, RegisterUserInTenantRequest, EditUserInTenantRequest, Role } f
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let usuario of usuarios">
+                <tr *ngFor="let usuario of usuariosFiltrados">
                   <td>
                     <div class="d-flex align-items-center gap-2">
                       <div class="user-avatar-small">
@@ -114,6 +144,11 @@ import { UserDto, RegisterUserInTenantRequest, EditUserInTenantRequest, Role } f
             </table>
           </div>
         </div>
+      </div>
+
+      <!-- Info de resultados -->
+      <div class="mt-3 text-muted" *ngIf="!isLoading && usuariosFiltrados.length > 0">
+        Mostrando {{ usuariosFiltrados.length }} de {{ usuarios.length }} usuarios
       </div>
 
       <!-- Modal Crear Usuario -->
@@ -765,6 +800,23 @@ import { UserDto, RegisterUserInTenantRequest, EditUserInTenantRequest, Role } f
     .border-bottom-0 {
       border-bottom: none !important;
     }
+
+    .spinner-border {
+      width: 3rem;
+      height: 3rem;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
   `]
 })
 export class UsuariosPageComponent implements OnInit {
@@ -772,9 +824,14 @@ export class UsuariosPageComponent implements OnInit {
   private toastService = inject(ToastService);
 
   usuarios: any[] = [];
+  usuariosFiltrados: any[] = [];
   usuariosOriginales: UserDto[] = [];
   isLoading = false;
   errorMessage = '';
+
+  // Filtros
+  searchTerm: string = '';
+  filtroRol: string = '';
 
   // Modal create user
   showCreateModal = false;
@@ -829,8 +886,10 @@ export class UsuariosPageComponent implements OnInit {
           ultimoAcceso: 'N/A', // TODO: Add lastAccess from backend
           iniciales: this.getInitials(user.username),
           telephone: user.telephone,
-          owner: user.owner
+          owner: user.owner,
+          roles: user.roles
         }));
+        this.usuariosFiltrados = this.usuarios;
         this.isLoading = false;
       },
       error: (error) => {
@@ -883,6 +942,26 @@ export class UsuariosPageComponent implements OnInit {
       'FREEZED': 'info'
     };
     return colorMap[status] || 'secondary';
+  }
+
+  applyFilters(): void {
+    this.usuariosFiltrados = this.usuarios.filter(usuario => {
+      // Filtro de búsqueda por texto
+      const matchesSearch = !this.searchTerm ||
+        usuario.nombre.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        usuario.email.toLowerCase().includes(this.searchTerm.toLowerCase());
+
+      // Filtro por rol
+      const matchesRol = !this.filtroRol || usuario.roles.includes(this.filtroRol);
+
+      return matchesSearch && matchesRol;
+    });
+  }
+
+  limpiarFiltros(): void {
+    this.searchTerm = '';
+    this.filtroRol = '';
+    this.applyFilters();
   }
 
   // Modal methods

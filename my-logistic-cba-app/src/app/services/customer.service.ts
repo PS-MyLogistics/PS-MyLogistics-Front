@@ -58,10 +58,6 @@ export class CustomerService {
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'Ocurrió un error desconocido';
 
-    console.error('Error completo en CustomerService:', error);
-    console.error('error.error:', error.error);
-    console.error('error.message:', error.message);
-
     if (error.error instanceof ErrorEvent) {
       // Client-side error
       errorMessage = `Error: ${error.error.message}`;
@@ -97,7 +93,6 @@ export class CustomerService {
       }
     }
 
-    console.error('Mensaje final:', errorMessage);
     return throwError(() => new Error(errorMessage));
   }
 }

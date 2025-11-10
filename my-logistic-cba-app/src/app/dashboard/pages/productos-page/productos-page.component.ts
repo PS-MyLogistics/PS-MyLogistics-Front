@@ -17,8 +17,14 @@ export class ProductosPageComponent implements OnInit {
   private toastService = inject(ToastService);
 
   productos: ProductResponse[] = [];
+  productosFiltrados: ProductResponse[] = [];
   isLoading = false;
   errorMessage = '';
+
+  // Filtros
+  searchTerm: string = '';
+  filtroPrecioMin: number | null = null;
+  filtroPrecioMax: number | null = null;
 
   // Modal create/edit product
   showProductModal = false;
@@ -50,6 +56,7 @@ export class ProductosPageComponent implements OnInit {
     this.productService.getAll().subscribe({
       next: (products) => {
         this.productos = products;
+        this.productosFiltrados = products;
         this.isLoading = false;
       },
       error: (error) => {
@@ -111,9 +118,17 @@ export class ProductosPageComponent implements OnInit {
     this.isCreating = true;
     this.modalError = '';
 
+    // Prepare request - if SKU is empty, generate a unique one or set to undefined
+    const productRequest: ProductCreationRequest = {
+      name: this.newProduct.name,
+      description: this.newProduct.description,
+      sku: this.newProduct.sku?.trim() || `SKU-${Date.now()}`, // Generate unique SKU if empty
+      price: this.newProduct.price
+    };
+
     if (this.isEditMode && this.editingProductId) {
       // Update product
-      this.productService.updateProduct(this.editingProductId, this.newProduct).subscribe({
+      this.productService.updateProduct(this.editingProductId, productRequest).subscribe({
         next: (product) => {
           this.isCreating = false;
           this.toastService.success(`Producto "${product.name}" actualizado exitosamente`);
@@ -127,7 +142,7 @@ export class ProductosPageComponent implements OnInit {
       });
     } else {
       // Create product
-      this.productService.createProduct(this.newProduct).subscribe({
+      this.productService.createProduct(productRequest).subscribe({
         next: (product) => {
           this.isCreating = false;
           this.toastService.success(`Producto "${product.name}" creado exitosamente`);
@@ -140,6 +155,31 @@ export class ProductosPageComponent implements OnInit {
         }
       });
     }
+  }
+
+  applyFilters(): void {
+    this.productosFiltrados = this.productos.filter(producto => {
+      // Filtro de búsqueda por texto
+      const matchesSearch = !this.searchTerm ||
+        producto.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        (producto.description && producto.description.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
+        (producto.sku && producto.sku.toLowerCase().includes(this.searchTerm.toLowerCase()));
+
+      // Filtro por precio mínimo
+      const matchesPrecioMin = this.filtroPrecioMin === null || producto.price >= this.filtroPrecioMin;
+
+      // Filtro por precio máximo
+      const matchesPrecioMax = this.filtroPrecioMax === null || producto.price <= this.filtroPrecioMax;
+
+      return matchesSearch && matchesPrecioMin && matchesPrecioMax;
+    });
+  }
+
+  limpiarFiltros(): void {
+    this.searchTerm = '';
+    this.filtroPrecioMin = null;
+    this.filtroPrecioMax = null;
+    this.applyFilters();
   }
 
   // Delete product methods

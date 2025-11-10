@@ -27,12 +27,13 @@
               class="form-control ps-5"
               placeholder="Buscar por nombre, email, teléfono, ciudad..."
               [(ngModel)]="searchTerm"
+              [ngModelOptions]="{standalone: true}"
               (ngModelChange)="applyFilters()"
             >
           </div>
         </div>
         <div class="col-md-4">
-          <select class="form-select" [(ngModel)]="filtroEstado" (ngModelChange)="applyFilters()">
+          <select class="form-select" [(ngModel)]="filtroEstado" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
             <option value="">Todos los estados</option>
             <option value="true">Activo</option>
             <option value="false">Inactivo</option>

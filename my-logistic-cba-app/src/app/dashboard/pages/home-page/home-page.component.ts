@@ -1,5 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { OrderService } from '../../../services/order.service';
+import { CustomerService } from '../../../services/customer.service';
+import { UserService } from '../../../services/user.service';
+import { DistributionService } from '../../../services/distribution.service';
+import { AuthService } from '../../../services/auth.service';
 
 @Component({
   selector: 'app-home-page',
@@ -7,8 +12,22 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   template: `
     <div class="page-container">
+      <!-- Welcome Header -->
+      <div class="welcome-header mb-4">
+        <h4 class="mb-2">Bienvenido, {{ currentUsername || 'Usuario' }}</h4>
+        <p class="text-muted mb-0">Aquí tienes un resumen de tus operaciones logísticas</p>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Cargando...</span>
+        </div>
+        <p class="mt-3 text-muted">Cargando estadísticas...</p>
+      </div>
+
       <!-- Stats Cards -->
-      <div class="row g-3 mb-4">
+      <div *ngIf="!isLoading" class="row g-3 mb-4">
         <div class="col-12 col-sm-6 col-lg-3">
           <div class="stat-card stat-primary">
             <div class="stat-icon">
@@ -17,8 +36,8 @@ import { CommonModule } from '@angular/common';
               </svg>
             </div>
             <div class="stat-content">
-              <h3>124</h3>
-              <p>Pedidos Activos</p>
+              <h3>{{ stats.totalOrders }}</h3>
+              <p>Total Pedidos</p>
             </div>
           </div>
         </div>
@@ -31,7 +50,7 @@ import { CommonModule } from '@angular/common';
               </svg>
             </div>
             <div class="stat-content">
-              <h3>856</h3>
+              <h3>{{ stats.deliveredOrders }}</h3>
               <p>Entregas Completadas</p>
             </div>
           </div>
@@ -45,7 +64,7 @@ import { CommonModule } from '@angular/common';
               </svg>
             </div>
             <div class="stat-content">
-              <h3>23</h3>
+              <h3>{{ stats.inTransitOrders }}</h3>
               <p>En Tránsito</p>
             </div>
           </div>
@@ -55,22 +74,120 @@ import { CommonModule } from '@angular/common';
           <div class="stat-card stat-info">
             <div class="stat-icon">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
               </svg>
             </div>
             <div class="stat-content">
-              <h3>45</h3>
-              <p>Usuarios Activos</p>
+              <h3>{{ stats.totalCustomers }}</h3>
+              <p>Clientes</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Welcome Card -->
-      <div class="card mb-4">
-        <div class="card-body">
-          <h5 class="card-title">Bienvenido a My Logistic</h5>
-          <p class="card-text text-muted">Panel de control para gestionar tus operaciones logísticas</p>
+      <!-- Additional Stats Row -->
+      <div *ngIf="!isLoading" class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="stat-card-secondary">
+            <div class="stat-icon-small">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </div>
+            <div>
+              <h4>\${{ stats.totalRevenue | number:'1.2-2' }}</h4>
+              <p>Ingresos Totales</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="stat-card-secondary">
+            <div class="stat-icon-small">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+              </svg>
+            </div>
+            <div>
+              <h4>{{ stats.pendingOrders }}</h4>
+              <p>Pedidos Pendientes</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4">
+          <div class="stat-card-secondary">
+            <div class="stat-icon-small">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+            </div>
+            <div>
+              <h4>{{ stats.totalDistributions }}</h4>
+              <p>Distribuciones Activas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders by Status Chart -->
+      <div *ngIf="!isLoading" class="row g-3 mb-4">
+        <div class="col-12 col-lg-8">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="card-title mb-0">Estado de Pedidos</h6>
+            </div>
+            <div class="card-body">
+              <div class="status-bars">
+                <div class="status-bar-item" *ngFor="let status of ordersByStatus">
+                  <div class="status-bar-header">
+                    <span class="status-label">{{ status.label }}</span>
+                    <span class="status-value">{{ status.count }} ({{ status.percentage }}%)</span>
+                  </div>
+                  <div class="progress-bar-container">
+                    <div class="progress-bar" [style.width.%]="status.percentage" [class]="'bg-' + status.color"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+          <div class="card">
+            <div class="card-header">
+              <h6 class="card-title mb-0">Resumen Rápido</h6>
+            </div>
+            <div class="card-body">
+              <div class="quick-stat">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                <div>
+                  <p class="mb-0">{{ stats.totalUsers }}</p>
+                  <span>Usuarios Totales</span>
+                </div>
+              </div>
+              <div class="quick-stat">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                </svg>
+                <div>
+                  <p class="mb-0">\${{ stats.averageOrderValue | number:'1.2-2' }}</p>
+                  <span>Valor Promedio de Pedido</span>
+                </div>
+              </div>
+              <div class="quick-stat">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+                <div>
+                  <p class="mb-0">{{ deliveryRate }}%</p>
+                  <span>Tasa de Entrega</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -78,6 +195,11 @@ import { CommonModule } from '@angular/common';
   styles: [`
     .page-container {
       max-width: 1400px;
+    }
+
+    .welcome-header h4 {
+      font-weight: 700;
+      color: #1f2937;
     }
 
     .stat-card {
@@ -89,6 +211,12 @@ import { CommonModule } from '@angular/common';
       gap: 16px;
       border-left: 4px solid;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
     .stat-primary { border-left-color: #2563eb; }
@@ -132,7 +260,7 @@ import { CommonModule } from '@angular/common';
     }
 
     .stat-content h3 {
-      font-size: 24px;
+      font-size: 28px;
       font-weight: 700;
       margin-bottom: 4px;
       color: #1f2937;
@@ -142,13 +270,288 @@ import { CommonModule } from '@angular/common';
       font-size: 14px;
       color: #6b7280;
       margin: 0;
+      font-weight: 500;
+    }
+
+    .stat-card-secondary {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-icon-small {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .stat-icon-small svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    .stat-card-secondary h4 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #1f2937;
+    }
+
+    .stat-card-secondary p {
+      font-size: 13px;
+      color: #6b7280;
+      margin: 0;
     }
 
     .card {
       border: none;
       border-radius: 12px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      background: white;
+    }
+
+    .card-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid #e5e7eb;
+      background: transparent;
+    }
+
+    .card-title {
+      font-weight: 700;
+      color: #1f2937;
+      font-size: 16px;
+    }
+
+    .card-body {
+      padding: 24px;
+    }
+
+    .status-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .status-bar-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .status-bar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .status-value {
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 12px;
+      background: #f3f4f6;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 0.3s ease;
+    }
+
+    .bg-primary { background: #2563eb; }
+    .bg-success { background: #10b981; }
+    .bg-warning { background: #f59e0b; }
+    .bg-secondary { background: #6b7280; }
+    .bg-danger { background: #ef4444; }
+
+    .quick-stat {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .quick-stat:last-child {
+      border-bottom: none;
+    }
+
+    .quick-stat svg {
+      color: #6b7280;
+      flex-shrink: 0;
+    }
+
+    .quick-stat p {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .quick-stat span {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .spinner-border {
+      width: 3rem;
+      height: 3rem;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
     }
   `]
 })
-export class HomePageComponent {}
+export class HomePageComponent implements OnInit {
+  private orderService = inject(OrderService);
+  private customerService = inject(CustomerService);
+  private userService = inject(UserService);
+  private distributionService = inject(DistributionService);
+  private authService = inject(AuthService);
+
+  isLoading = true;
+  currentUsername: string | null = null;
+
+  stats = {
+    totalOrders: 0,
+    pendingOrders: 0,
+    deliveredOrders: 0,
+    inTransitOrders: 0,
+    totalCustomers: 0,
+    totalUsers: 0,
+    totalDistributions: 0,
+    totalRevenue: 0,
+    averageOrderValue: 0
+  };
+
+  ordersByStatus: any[] = [];
+  deliveryRate: number = 0;
+
+  ngOnInit(): void {
+    this.currentUsername = this.authService.getCurrentUsername();
+    this.loadStatistics();
+  }
+
+  loadStatistics(): void {
+    this.isLoading = true;
+
+    // Load orders
+    this.orderService.getAll().subscribe({
+      next: (orders) => {
+        this.stats.totalOrders = orders.length;
+        this.stats.pendingOrders = orders.filter(o => o.status === 'PENDING').length;
+        this.stats.deliveredOrders = orders.filter(o => o.status === 'DELIVERED').length;
+        this.stats.inTransitOrders = orders.filter(o => o.status === 'IN_TRANSIT').length;
+
+        // Calculate revenue
+        this.stats.totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+        this.stats.averageOrderValue = this.stats.totalOrders > 0 ? this.stats.totalRevenue / this.stats.totalOrders : 0;
+
+        // Calculate delivery rate
+        this.deliveryRate = this.stats.totalOrders > 0
+          ? Math.round((this.stats.deliveredOrders / this.stats.totalOrders) * 100)
+          : 0;
+
+        // Orders by status
+        this.ordersByStatus = [
+          {
+            label: 'Pendientes',
+            count: this.stats.pendingOrders,
+            percentage: this.stats.totalOrders > 0 ? Math.round((this.stats.pendingOrders / this.stats.totalOrders) * 100) : 0,
+            color: 'secondary'
+          },
+          {
+            label: 'En Proceso',
+            count: orders.filter(o => o.status === 'PROCESSING').length,
+            percentage: this.stats.totalOrders > 0 ? Math.round((orders.filter(o => o.status === 'PROCESSING').length / this.stats.totalOrders) * 100) : 0,
+            color: 'primary'
+          },
+          {
+            label: 'En Tránsito',
+            count: this.stats.inTransitOrders,
+            percentage: this.stats.totalOrders > 0 ? Math.round((this.stats.inTransitOrders / this.stats.totalOrders) * 100) : 0,
+            color: 'warning'
+          },
+          {
+            label: 'Entregados',
+            count: this.stats.deliveredOrders,
+            percentage: this.stats.totalOrders > 0 ? Math.round((this.stats.deliveredOrders / this.stats.totalOrders) * 100) : 0,
+            color: 'success'
+          },
+          {
+            label: 'Cancelados',
+            count: orders.filter(o => o.status === 'CANCELLED').length,
+            percentage: this.stats.totalOrders > 0 ? Math.round((orders.filter(o => o.status === 'CANCELLED').length / this.stats.totalOrders) * 100) : 0,
+            color: 'danger'
+          }
+        ];
+
+        this.loadOtherStats();
+      },
+      error: (error) => {
+        console.error('Error loading orders:', error);
+        this.isLoading = false;
+      }
+    });
+  }
+
+  loadOtherStats(): void {
+    // Load customers
+    this.customerService.getAll().subscribe({
+      next: (customers) => {
+        this.stats.totalCustomers = customers.length;
+      },
+      error: (error) => console.error('Error loading customers:', error)
+    });
+
+    // Load users
+    this.userService.getAll().subscribe({
+      next: (users) => {
+        this.stats.totalUsers = users.length;
+      },
+      error: (error) => console.error('Error loading users:', error)
+    });
+
+    // Load distributions
+    this.distributionService.getAllDistributions().subscribe({
+      next: (distributions) => {
+        this.stats.totalDistributions = distributions.length;
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading distributions:', error);
+        this.isLoading = false;
+      }
+    });
+  }
+}
