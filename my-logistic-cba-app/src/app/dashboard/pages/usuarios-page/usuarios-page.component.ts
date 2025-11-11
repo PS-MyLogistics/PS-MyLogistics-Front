@@ -1112,10 +1112,9 @@ export class UsuariosPageComponent implements OnInit {
       roles: [this.selectedRole as Role],
       address: this.newUser.address,
       city: this.newUser.city,
-      stateOrProvince: this.newUser.stateOrProvince
+      stateOrProvince: this.newUser.stateOrProvince,
+      vehicleId: this.newUser.vehicleId
     };
-
-    console.log('Creating user with request:', request);
 
     this.userService.createInternalUser(request).subscribe({
       next: (user) => {
@@ -1188,7 +1187,8 @@ export class UsuariosPageComponent implements OnInit {
       address: this.editUser.address,
       city: this.editUser.city,
       stateOrProvince: this.editUser.stateOrProvince,
-      roles: [this.selectedRole as Role]
+      roles: [this.selectedRole as Role],
+      vehicleId: this.editUser.vehicleId
     };
 
     this.userService.editInternalUser(request).subscribe({

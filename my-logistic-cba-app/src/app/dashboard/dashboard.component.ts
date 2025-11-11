@@ -61,6 +61,14 @@ import { Role } from '../models/user.model';
             <span>Usuarios</span>
           </a>
 
+          <a *ngIf="!isDealer()" [routerLink]="['/dashboard/vehiculos']" routerLinkActive="active" class="nav-item">
+            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0h-.01M15 17a2 2 0 104 0m-4 0h-.01M9 17h6"></path>
+            </svg>
+            <span>Vehículos</span>
+          </a>
+
           <a [routerLink]="['/dashboard/mapa']" routerLinkActive="active" class="nav-item">
             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
@@ -624,6 +632,8 @@ export class DashboardComponent implements OnInit {
       this.currentPageTitle = 'Productos';
     } else if (url.includes('usuarios')) {
       this.currentPageTitle = 'Usuarios';
+    } else if (url.includes('vehiculos')) {
+      this.currentPageTitle = 'Vehículos';
     } else if (url.includes('mapa')) {
       this.currentPageTitle = 'Mapa';
     } else {
