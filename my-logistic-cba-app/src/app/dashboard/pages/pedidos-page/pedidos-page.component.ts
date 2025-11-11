@@ -6,6 +6,7 @@ import { OrderService } from '../../../services/order.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { DistributionService } from '../../../services/distribution.service';
+import { AuthService } from '../../../services/auth.service';
 import { Order } from '../../../models/order.model';
 import { UserDto, Role } from '../../../models/user.model';
 import { DistributionCreationRequest } from '../../../models/distribution.model';
@@ -19,10 +20,10 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
       <!-- Header con botón -->
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h5 class="mb-1">Gestión de Pedidos</h5>
-          <p class="text-muted mb-0">Administra todos los pedidos del sistema</p>
+          <h5 class="mb-1">{{ isDealer ? 'Mis Pedidos' : 'Gestión de Pedidos' }}</h5>
+          <p class="text-muted mb-0">{{ isDealer ? 'Pedidos asignados a ti' : 'Administra todos los pedidos del sistema' }}</p>
         </div>
-        <button class="btn btn-primary" (click)="goToNuevoPedido()">
+        <button *ngIf="!isDealer" class="btn btn-primary" (click)="goToNuevoPedido()">
           <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
           </svg>
@@ -134,9 +135,10 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                   </td>
                   <td>
                     <span *ngIf="pedido.dealerName" class="text-primary">{{ pedido.dealerName }}</span>
-                    <button *ngIf="!pedido.dealerName" class="btn btn-sm btn-outline-primary" (click)="openAssignDealerModal(pedido)">
+                    <button *ngIf="!pedido.dealerName && !isDealer" class="btn btn-sm btn-outline-primary" (click)="openAssignDealerModal(pedido)">
                       Asignar
                     </button>
+                    <span *ngIf="!pedido.dealerName && isDealer" class="text-muted">-</span>
                   </td>
                   <td>
                     <span [class]="'badge bg-' + getStatusColor(pedido.status)">
@@ -150,7 +152,7 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                       </svg>
                     </button>
-                    <button *ngIf="pedido.dealerName" class="btn btn-sm btn-icon" (click)="openAssignDealerModal(pedido)" title="Cambiar repartidor">
+                    <button *ngIf="pedido.dealerName && !isDealer" class="btn btn-sm btn-icon" (click)="openAssignDealerModal(pedido)" title="Cambiar repartidor">
                       <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                       </svg>
@@ -592,11 +594,15 @@ export class PedidosPageComponent implements OnInit {
   private userService = inject(UserService);
   private distributionService = inject(DistributionService);
   private toastService = inject(ToastService);
+  private authService = inject(AuthService);
 
   pedidos: Order[] = [];
   pedidosFiltrados: Order[] = [];
   isLoading = false;
   distributions: any[] = [];
+  isDealer = false;
+  currentUserId: string | null = null;
+  currentUsername: string | null = null;
 
   // Filtros
   searchTerm: string = '';
@@ -616,16 +622,24 @@ export class PedidosPageComponent implements OnInit {
   selectedOrderDetails: Order | null = null;
 
   ngOnInit(): void {
+    this.currentUsername = this.authService.getCurrentUsername();
+    this.isDealer = this.authService.hasRole(Role.DEALER);
+    // Load dealers first, then distributions (which loads orders)
     this.loadDealers();
-    this.loadDistributions();
   }
 
   loadOrders(): void {
     this.isLoading = true;
     this.orderService.getAll().subscribe({
       next: (orders) => {
+        console.log('DEBUG - isDealer:', this.isDealer);
+        console.log('DEBUG - currentUserId:', this.currentUserId);
+        console.log('DEBUG - currentUsername:', this.currentUsername);
+        console.log('DEBUG - distributions:', this.distributions);
+        console.log('DEBUG - dealers:', this.dealers);
+
         // Enriquecer pedidos con información de distribuciones
-        this.pedidos = orders.map(order => {
+        let enrichedOrders = orders.map(order => {
           // Buscar si este pedido está en alguna distribución
           const distribution = this.distributions.find(dist =>
             dist.orderIds && dist.orderIds.includes(order.id)
@@ -645,7 +659,27 @@ export class PedidosPageComponent implements OnInit {
           return order;
         });
 
-        this.pedidosFiltrados = this.pedidos;
+        console.log('DEBUG - enrichedOrders before filter:', enrichedOrders);
+
+        // Si es dealer, filtrar solo sus pedidos
+        if (this.isDealer && this.currentUserId) {
+          const filteredOrders = enrichedOrders.filter(order => order.dealerId === this.currentUserId);
+          console.log('DEBUG - enrichedOrders after dealer filter:', filteredOrders);
+
+          // Si no hay distribuciones cargadas (error del backend), mostrar advertencia
+          if (this.distributions.length === 0) {
+            console.warn('ADVERTENCIA: No hay distribuciones disponibles. El backend /distributions/getAll está fallando.');
+            console.warn('WORKAROUND: Se mostrarán todos los pedidos porque no se puede determinar cuáles están asignados al dealer.');
+            // Mostrar todos los pedidos si no hay distribuciones
+            enrichedOrders = orders;
+          } else {
+            // Usar pedidos filtrados solo si tenemos distribuciones válidas
+            enrichedOrders = filteredOrders;
+          }
+        }
+
+        this.pedidos = enrichedOrders;
+        this.pedidosFiltrados = enrichedOrders;
         this.isLoading = false;
       },
       error: (error) => {
@@ -660,11 +694,14 @@ export class PedidosPageComponent implements OnInit {
     this.distributionService.getAllDistributions().subscribe({
       next: (distributions) => {
         this.distributions = distributions;
+        console.log('DEBUG - Distributions loaded successfully:', distributions.length);
         // Cargar pedidos después de cargar distribuciones
         this.loadOrders();
       },
       error: (error) => {
         console.error('Error loading distributions:', error);
+        console.warn('ADVERTENCIA: No se pudieron cargar las distribuciones. Este es un problema del backend.');
+        this.distributions = [];
         // Cargar pedidos de todas formas
         this.loadOrders();
       }
@@ -744,16 +781,40 @@ export class PedidosPageComponent implements OnInit {
   }
 
   loadDealers(): void {
-    this.userService.getAll().subscribe({
-      next: (users) => {
-        // Filtrar solo usuarios con rol DEALER
-        this.dealers = users.filter(user => user.roles.includes(Role.DEALER));
-      },
-      error: (error) => {
-        this.toastService.error('Error al cargar repartidores');
-        console.error('Error loading dealers:', error);
-      }
-    });
+    // Si es dealer, obtener su ID desde el endpoint /me
+    if (this.isDealer) {
+      this.userService.getCurrentUser().subscribe({
+        next: (currentUser) => {
+          this.currentUserId = currentUser.id;
+          console.log('DEBUG - currentUserId set to:', this.currentUserId);
+          // After getting current user ID, load distributions
+          this.loadDistributions();
+        },
+        error: (error) => {
+          console.error('Error loading current user:', error);
+          this.currentUserId = null;
+          // Still load distributions even if current user loading fails
+          this.loadDistributions();
+        }
+      });
+    } else {
+      // Si no es dealer, cargar la lista de dealers para el modal de asignación
+      this.userService.getAll().subscribe({
+        next: (users) => {
+          // Filtrar solo usuarios con rol DEALER
+          this.dealers = users.filter(user => user.roles.includes(Role.DEALER));
+          // After dealers are loaded, load distributions
+          this.loadDistributions();
+        },
+        error: (error) => {
+          this.toastService.error('Error al cargar repartidores');
+          console.error('Error loading dealers:', error);
+          this.dealers = [];
+          // Still load distributions even if dealer loading fails
+          this.loadDistributions();
+        }
+      });
+    }
   }
 
   openAssignDealerModal(order: Order): void {

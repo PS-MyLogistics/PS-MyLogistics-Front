@@ -3,7 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomerService } from '../../../services/customer.service';
 import { ToastService } from '../../../services/toast.service';
+import { AuthService } from '../../../services/auth.service';
 import { Customer, CustomerCreationRequest } from '../../../models/customer.model';
+import { Role } from '../../../models/user.model';
 
 @Component({
   selector: 'app-clientes-page',
@@ -15,12 +17,14 @@ import { Customer, CustomerCreationRequest } from '../../../models/customer.mode
 export class ClientesPageComponent implements OnInit {
   private customerService = inject(CustomerService);
   private toastService = inject(ToastService);
+  private authService = inject(AuthService);
 
   clientes: any[] = [];
   clientesFiltrados: any[] = [];
   clientesOriginales: Customer[] = [];
   isLoading = false;
   errorMessage = '';
+  isDealer = false;
 
   // Filtros
   searchTerm: string = '';
@@ -44,6 +48,7 @@ export class ClientesPageComponent implements OnInit {
   newCustomer: CustomerCreationRequest = this.getEmptyCustomer();
 
   ngOnInit(): void {
+    this.isDealer = this.authService.hasRole(Role.DEALER);
     this.loadCustomers();
   }
 

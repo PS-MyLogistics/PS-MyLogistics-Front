@@ -2,8 +2,10 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UserService } from '../../../services/user.service';
+import { VehicleService } from '../../../services/vehicle.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserDto, RegisterUserInTenantRequest, EditUserInTenantRequest, Role } from '../../../models/user.model';
+import { VehicleResponse } from '../../../models/vehicle.model';
 
 @Component({
   selector: 'app-usuarios-page',
@@ -89,6 +91,7 @@ import { UserDto, RegisterUserInTenantRequest, EditUserInTenantRequest, Role } f
                   <th>Usuario</th>
                   <th>Email</th>
                   <th>Rol</th>
+                  <th>Vehículo</th>
                   <th>Estado</th>
                   <th>Pedidos</th>
                   <th>Último Acceso</th>
@@ -110,6 +113,16 @@ import { UserDto, RegisterUserInTenantRequest, EditUserInTenantRequest, Role } f
                     <span [class]="'badge bg-' + usuario.rolColor">
                       {{ usuario.rol }}
                     </span>
+                  </td>
+                  <td>
+                    <span *ngIf="usuario.vehiclePlate" class="text-muted">
+                      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline-block; vertical-align: middle; margin-right: 4px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0h-.01M15 17a2 2 0 104 0m-4 0h-.01M9 17h6"></path>
+                      </svg>
+                      {{ usuario.vehiclePlate }}
+                    </span>
+                    <span *ngIf="!usuario.vehiclePlate" class="text-muted">-</span>
                   </td>
                   <td>
                     <span [class]="'badge bg-' + usuario.estadoColor">
@@ -287,6 +300,22 @@ import { UserDto, RegisterUserInTenantRequest, EditUserInTenantRequest, Role } f
                   </select>
                 </div>
 
+                <div class="mb-3" *ngIf="selectedRole === 'DEALER'">
+                  <label for="vehicle" class="form-label">Vehículo</label>
+                  <select
+                    class="form-select"
+                    id="vehicle"
+                    [(ngModel)]="newUser.vehicleId"
+                    name="vehicle"
+                  >
+                    <option value="">Sin vehículo asignado</option>
+                    <option *ngFor="let vehicle of vehicles" [value]="vehicle.id">
+                      {{ vehicle.plate }}{{ vehicle.model ? ' - ' + vehicle.model : '' }} (Capacidad: {{ vehicle.capacity }})
+                    </option>
+                  </select>
+                  <small class="form-text text-muted">Opcional: Asignar un vehículo al operador</small>
+                </div>
+
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label for="city" class="form-label">Ciudad</label>
@@ -439,6 +468,22 @@ import { UserDto, RegisterUserInTenantRequest, EditUserInTenantRequest, Role } f
                     <option value="DEALER">Operador (Dealer)</option>
                     <option value="ADMIN">Administrador</option>
                   </select>
+                </div>
+
+                <div class="mb-3" *ngIf="selectedRole === 'DEALER'">
+                  <label for="editVehicle" class="form-label">Vehículo</label>
+                  <select
+                    class="form-select"
+                    id="editVehicle"
+                    [(ngModel)]="editUser.vehicleId"
+                    name="vehicle"
+                  >
+                    <option value="">Sin vehículo asignado</option>
+                    <option *ngFor="let vehicle of vehicles" [value]="vehicle.id">
+                      {{ vehicle.plate }}{{ vehicle.model ? ' - ' + vehicle.model : '' }} (Capacidad: {{ vehicle.capacity }})
+                    </option>
+                  </select>
+                  <small class="form-text text-muted">Opcional: Asignar un vehículo al operador</small>
                 </div>
 
                 <div class="row">
@@ -821,11 +866,13 @@ import { UserDto, RegisterUserInTenantRequest, EditUserInTenantRequest, Role } f
 })
 export class UsuariosPageComponent implements OnInit {
   private userService = inject(UserService);
+  private vehicleService = inject(VehicleService);
   private toastService = inject(ToastService);
 
   usuarios: any[] = [];
   usuariosFiltrados: any[] = [];
   usuariosOriginales: UserDto[] = [];
+  vehicles: VehicleResponse[] = [];
   isLoading = false;
   errorMessage = '';
 
@@ -865,6 +912,7 @@ export class UsuariosPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadUsers();
+    this.loadVehicles();
   }
 
   loadUsers(): void {
@@ -887,7 +935,9 @@ export class UsuariosPageComponent implements OnInit {
           iniciales: this.getInitials(user.username),
           telephone: user.telephone,
           owner: user.owner,
-          roles: user.roles
+          roles: user.roles,
+          vehicleId: user.vehicleId,
+          vehiclePlate: user.vehiclePlate
         }));
         this.usuariosFiltrados = this.usuarios;
         this.isLoading = false;
@@ -896,6 +946,18 @@ export class UsuariosPageComponent implements OnInit {
         this.errorMessage = error.message || 'Error al cargar usuarios';
         this.isLoading = false;
         console.error('Error loading users:', error);
+      }
+    });
+  }
+
+  loadVehicles(): void {
+    this.vehicleService.getAll().subscribe({
+      next: (vehicles) => {
+        this.vehicles = vehicles;
+      },
+      error: (error) => {
+        console.error('Error loading vehicles:', error);
+        this.toastService.error('Error al cargar vehículos');
       }
     });
   }
@@ -1097,7 +1159,8 @@ export class UsuariosPageComponent implements OnInit {
       address: originalUser.address || '',
       city: originalUser.city || '',
       stateOrProvince: originalUser.stateOrProvince || '',
-      roles: originalUser.roles
+      roles: originalUser.roles,
+      vehicleId: originalUser.vehicleId || ''
     };
     this.selectedRole = originalUser.roles[0] || '';
   }

@@ -5,6 +5,7 @@ import { CustomerService } from '../../../services/customer.service';
 import { UserService } from '../../../services/user.service';
 import { DistributionService } from '../../../services/distribution.service';
 import { AuthService } from '../../../services/auth.service';
+import { Role } from '../../../models/user.model';
 
 @Component({
   selector: 'app-home-page',
@@ -70,7 +71,7 @@ import { AuthService } from '../../../services/auth.service';
           </div>
         </div>
 
-        <div class="col-12 col-sm-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-lg-3" *ngIf="!isDealer">
           <div class="stat-card stat-info">
             <div class="stat-icon">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +87,7 @@ import { AuthService } from '../../../services/auth.service';
       </div>
 
       <!-- Additional Stats Row -->
-      <div *ngIf="!isLoading" class="row g-3 mb-4">
+      <div *ngIf="!isLoading && !isDealer" class="row g-3 mb-4">
         <div class="col-12 col-sm-6 col-lg-4">
           <div class="stat-card-secondary">
             <div class="stat-icon-small">
@@ -441,6 +442,8 @@ export class HomePageComponent implements OnInit {
 
   isLoading = true;
   currentUsername: string | null = null;
+  isDealer = false;
+  currentUserId: string | null = null;
 
   stats = {
     totalOrders: 0,
@@ -459,15 +462,72 @@ export class HomePageComponent implements OnInit {
 
   ngOnInit(): void {
     this.currentUsername = this.authService.getCurrentUsername();
-    this.loadStatistics();
+    this.isDealer = this.authService.hasRole(Role.DEALER);
+    this.loadCurrentUserId();
+  }
+
+  loadCurrentUserId(): void {
+    if (this.isDealer) {
+      // Obtener el ID del usuario actual usando el endpoint /me
+      this.userService.getCurrentUser().subscribe({
+        next: (currentUser) => {
+          this.currentUserId = currentUser.id;
+          this.loadStatistics();
+        },
+        error: (error) => {
+          console.error('Error loading current user:', error);
+          this.currentUserId = null;
+          this.loadStatistics();
+        }
+      });
+    } else {
+      this.loadStatistics();
+    }
   }
 
   loadStatistics(): void {
     this.isLoading = true;
 
-    // Load orders
+    // Si es dealer, primero cargar las distribuciones para filtrar sus pedidos
+    if (this.isDealer && this.currentUserId) {
+      this.distributionService.getAllDistributions().subscribe({
+        next: (distributions) => {
+          // Filtrar distribuciones del dealer actual
+          const dealerDistributions = distributions.filter(d => d.dealerId === this.currentUserId);
+
+          // Obtener todos los IDs de pedidos asignados al dealer
+          const dealerOrderIds = new Set<string>();
+          dealerDistributions.forEach(dist => {
+            if (dist.orderIds) {
+              dist.orderIds.forEach(orderId => dealerOrderIds.add(orderId));
+            }
+          });
+
+          // Cargar pedidos y filtrar solo los del dealer
+          this.loadOrdersWithFilter(dealerOrderIds);
+        },
+        error: (error) => {
+          console.error('Error loading distributions:', error);
+          console.warn('ADVERTENCIA: No se pudieron cargar las distribuciones. El backend /distributions/getAll está fallando.');
+          console.warn('WORKAROUND: Se mostrarán todos los pedidos porque no se puede determinar cuáles están asignados al dealer.');
+          // Si falla, mostrar todos los pedidos (null = sin filtro)
+          this.loadOrdersWithFilter(null);
+        }
+      });
+    } else {
+      // Si no es dealer, cargar todas las estadísticas
+      this.loadOrdersWithFilter(null);
+    }
+  }
+
+  loadOrdersWithFilter(dealerOrderIds: Set<string> | null): void {
     this.orderService.getAll().subscribe({
-      next: (orders) => {
+      next: (allOrders) => {
+        // Filtrar pedidos si es dealer
+        const orders = dealerOrderIds !== null
+          ? allOrders.filter(o => dealerOrderIds.has(o.id))
+          : allOrders;
+
         this.stats.totalOrders = orders.length;
         this.stats.pendingOrders = orders.filter(o => o.status === 'PENDING').length;
         this.stats.deliveredOrders = orders.filter(o => o.status === 'DELIVERED').length;
@@ -526,6 +586,12 @@ export class HomePageComponent implements OnInit {
   }
 
   loadOtherStats(): void {
+    // Los dealers no necesitan ver estas estadísticas
+    if (this.isDealer) {
+      this.isLoading = false;
+      return;
+    }
+
     // Load customers
     this.customerService.getAll().subscribe({
       next: (customers) => {

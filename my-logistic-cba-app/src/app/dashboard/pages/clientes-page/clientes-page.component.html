@@ -2,10 +2,10 @@
   <!-- Header con botón -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h5 class="mb-1">Gestión de Clientes</h5>
-      <p class="text-muted mb-0">Administra los clientes del sistema</p>
+      <h5 class="mb-1">{{ isDealer ? 'Clientes' : 'Gestión de Clientes' }}</h5>
+      <p class="text-muted mb-0">{{ isDealer ? 'Consulta los clientes del sistema' : 'Administra los clientes del sistema' }}</p>
     </div>
-    <button class="btn btn-primary" (click)="openCreateCustomerModal()">
+    <button *ngIf="!isDealer" class="btn btn-primary" (click)="openCreateCustomerModal()">
       <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
       </svg>
@@ -102,6 +102,7 @@
               </td>
               <td>
                 <button
+                  *ngIf="!isDealer"
                   class="btn btn-sm btn-icon text-primary me-2"
                   title="Editar cliente"
                   (click)="openEditCustomerModal(cliente)"
@@ -111,6 +112,7 @@
                   </svg>
                 </button>
                 <button
+                  *ngIf="!isDealer"
                   class="btn btn-sm btn-icon text-danger"
                   title="Eliminar cliente"
                   (click)="openDeleteModal(cliente)"
@@ -119,6 +121,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                   </svg>
                 </button>
+                <span *ngIf="isDealer" class="text-muted">-</span>
               </td>
             </tr>
           </tbody>

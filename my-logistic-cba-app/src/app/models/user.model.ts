@@ -24,6 +24,8 @@ export interface UserDto {
   roles: Role[];
   owner: boolean;
   status: UserStatus;
+  vehicleId?: string;
+  vehiclePlate?: string;
 }
 
 export interface RegisterUserInTenantRequest {
@@ -35,6 +37,7 @@ export interface RegisterUserInTenantRequest {
   address?: string;
   city?: string;
   stateOrProvince?: string;
+  vehicleId?: string;
 }
 
 export interface EditUserInTenantRequest {
@@ -46,4 +49,5 @@ export interface EditUserInTenantRequest {
   city?: string;
   stateOrProvince?: string;
   newPassword?: string;
+  vehicleId?: string;
 }
