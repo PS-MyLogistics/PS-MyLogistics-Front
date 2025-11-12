@@ -6,10 +6,14 @@ import { OrderService } from '../../../services/order.service';
 import { ToastService } from '../../../services/toast.service';
 import { UserService } from '../../../services/user.service';
 import { DistributionService } from '../../../services/distribution.service';
+import { ZoneService } from '../../../services/zone.service';
+import { CustomerService } from '../../../services/customer.service';
 import { AuthService } from '../../../services/auth.service';
 import { Order } from '../../../models/order.model';
 import { UserDto, Role } from '../../../models/user.model';
 import { DistributionCreationRequest } from '../../../models/distribution.model';
+import { ZoneResponse } from '../../../models/zone.model';
+import { Customer } from '../../../models/customer.model';
 
 @Component({
   selector: 'app-pedidos-page',
@@ -35,7 +39,7 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
       <div class="card mb-4">
         <div class="card-body">
           <div class="row g-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="form-label">Buscar</label>
               <input
                 type="text"
@@ -46,7 +50,7 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                 placeholder="Buscar por número de pedido, cliente..."
               >
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
               <label class="form-label">Estado</label>
               <select class="form-select" [(ngModel)]="filtroEstado" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
                 <option value="">Todos los estados</option>
@@ -55,6 +59,13 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                 <option value="IN_TRANSIT">En Tránsito</option>
                 <option value="DELIVERED">Entregado</option>
                 <option value="CANCELLED">Cancelado</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Zona</label>
+              <select class="form-select" [(ngModel)]="filtroZona" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
+                <option value="">Todas las zonas</option>
+                <option *ngFor="let zone of zones" [value]="zone.id">{{ zone.name }}</option>
               </select>
             </div>
             <div class="col-md-2">
@@ -102,7 +113,7 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
         </svg>
         <h6>No se encontraron pedidos</h6>
-        <p class="text-muted">{{ searchTerm || filtroEstado || filtroFechaDesde || filtroFechaHasta ? 'Intenta ajustar los filtros' : 'Crea tu primer pedido para comenzar' }}</p>
+        <p class="text-muted">{{ searchTerm || filtroEstado || filtroZona || filtroFechaDesde || filtroFechaHasta ? 'Intenta ajustar los filtros' : 'Crea tu primer pedido para comenzar' }}</p>
       </div>
 
       <!-- Tabla de Pedidos -->
@@ -116,6 +127,7 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                   <th>Fecha</th>
                   <th>Cliente</th>
                   <th>Dirección</th>
+                  <th>Zona</th>
                   <th class="text-end">Total</th>
                   <th>Repartidor</th>
                   <th>Estado</th>
@@ -129,6 +141,12 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                   <td>{{ pedido.customerName || 'N/A' }}</td>
                   <td>
                     <small class="text-muted">{{ pedido.customerAddress || 'N/A' }}</small>
+                  </td>
+                  <td>
+                    <span *ngIf="pedido.customerZoneName" class="badge" [style.background-color]="pedido.customerZoneColor" [style.color]="'white'">
+                      {{ pedido.customerZoneName }}
+                    </span>
+                    <span *ngIf="!pedido.customerZoneName" class="text-muted">Sin zona</span>
                   </td>
                   <td class="text-end">
                     <strong>\${{ pedido.totalAmount | number:'1.2-2' }}</strong>
@@ -251,6 +269,18 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                     <p class="detail-value">{{ selectedOrderDetails.customerName || 'N/A' }}</p>
                   </div>
                 </div>
+                <div class="col-md-6" *ngIf="customerDetails">
+                  <div class="detail-group">
+                    <label class="detail-label">Email</label>
+                    <p class="detail-value">{{ customerDetails.email || 'N/A' }}</p>
+                  </div>
+                </div>
+                <div class="col-md-6" *ngIf="customerDetails">
+                  <div class="detail-group">
+                    <label class="detail-label">Teléfono</label>
+                    <p class="detail-value">{{ customerDetails.phoneNumber || 'N/A' }}</p>
+                  </div>
+                </div>
                 <div class="col-md-6">
                   <div class="detail-group">
                     <label class="detail-label">Dirección</label>
@@ -261,6 +291,34 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                   <div class="detail-group">
                     <label class="detail-label">Ciudad</label>
                     <p class="detail-value">{{ selectedOrderDetails.customerCity }}</p>
+                  </div>
+                </div>
+                <div class="col-md-6" *ngIf="customerDetails">
+                  <div class="detail-group">
+                    <label class="detail-label">Provincia</label>
+                    <p class="detail-value">{{ customerDetails.state || 'N/A' }}</p>
+                  </div>
+                </div>
+                <div class="col-md-6" *ngIf="customerDetails">
+                  <div class="detail-group">
+                    <label class="detail-label">Código Postal</label>
+                    <p class="detail-value">{{ customerDetails.postalCode || 'N/A' }}</p>
+                  </div>
+                </div>
+                <div class="col-md-6" *ngIf="customerDetails && customerDetails.doorbell">
+                  <div class="detail-group">
+                    <label class="detail-label">Timbre</label>
+                    <p class="detail-value">{{ customerDetails.doorbell }}</p>
+                  </div>
+                </div>
+                <div class="col-md-6" *ngIf="selectedOrderDetails.customerZoneName">
+                  <div class="detail-group">
+                    <label class="detail-label">Zona</label>
+                    <p class="detail-value">
+                      <span class="badge" [style.background-color]="selectedOrderDetails.customerZoneColor" [style.color]="'white'">
+                        {{ selectedOrderDetails.customerZoneName }}
+                      </span>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -593,6 +651,8 @@ export class PedidosPageComponent implements OnInit {
   private orderService = inject(OrderService);
   private userService = inject(UserService);
   private distributionService = inject(DistributionService);
+  private zoneService = inject(ZoneService);
+  private customerService = inject(CustomerService);
   private toastService = inject(ToastService);
   private authService = inject(AuthService);
 
@@ -600,6 +660,7 @@ export class PedidosPageComponent implements OnInit {
   pedidosFiltrados: Order[] = [];
   isLoading = false;
   distributions: any[] = [];
+  zones: ZoneResponse[] = [];
   isDealer = false;
   currentUserId: string | null = null;
   currentUsername: string | null = null;
@@ -607,6 +668,7 @@ export class PedidosPageComponent implements OnInit {
   // Filtros
   searchTerm: string = '';
   filtroEstado: string = '';
+  filtroZona: string = '';
   filtroFechaDesde: string = '';
   filtroFechaHasta: string = '';
 
@@ -620,12 +682,26 @@ export class PedidosPageComponent implements OnInit {
   // Modal detalles
   showDetailsModal = false;
   selectedOrderDetails: Order | null = null;
+  customerDetails: Customer | null = null;
 
   ngOnInit(): void {
     this.currentUsername = this.authService.getCurrentUsername();
     this.isDealer = this.authService.hasRole(Role.DEALER);
-    // Load dealers first, then distributions (which loads orders)
+    // Load zones and dealers first, then distributions (which loads orders)
+    this.loadZones();
     this.loadDealers();
+  }
+
+  loadZones(): void {
+    this.zoneService.getAll().subscribe({
+      next: (zones) => {
+        this.zones = zones;
+      },
+      error: (error) => {
+        console.error('Error loading zones:', error);
+        this.toastService.error('Error al cargar zonas');
+      }
+    });
   }
 
   loadOrders(): void {
@@ -678,15 +754,64 @@ export class PedidosPageComponent implements OnInit {
           }
         }
 
-        this.pedidos = enrichedOrders;
-        this.pedidosFiltrados = enrichedOrders;
-        this.isLoading = false;
+        // Enriquecer con datos de clientes y zonas
+        this.enrichOrdersWithCustomerData(enrichedOrders);
       },
       error: (error) => {
         this.isLoading = false;
         this.toastService.error('Error al cargar los pedidos');
         console.error('Error loading orders:', error);
       }
+    });
+  }
+
+  enrichOrdersWithCustomerData(orders: Order[]): void {
+    // Cargar los datos de todos los clientes únicos
+    const customerIds = [...new Set(orders.map(order => order.customerId))];
+    let processedCount = 0;
+
+    if (customerIds.length === 0) {
+      this.pedidos = orders;
+      this.pedidosFiltrados = orders;
+      this.isLoading = false;
+      return;
+    }
+
+    // Cargar cada cliente
+    customerIds.forEach(customerId => {
+      this.customerService.getById(customerId).subscribe({
+        next: (customer) => {
+          // Buscar la zona del cliente
+          const zone = this.zones.find(z => z.id === customer.zoneId);
+
+          // Actualizar todos los pedidos de este cliente
+          orders.forEach(order => {
+            if (order.customerId === customerId) {
+              order.customerZoneId = customer.zoneId;
+              order.customerZoneName = customer.zoneName;
+              order.customerZoneColor = zone?.color || '#6366f1';
+            }
+          });
+
+          processedCount++;
+          if (processedCount === customerIds.length) {
+            // Todos los clientes fueron procesados
+            this.pedidos = orders;
+            this.pedidosFiltrados = orders;
+            this.isLoading = false;
+          }
+        },
+        error: (error) => {
+          console.error('Error loading customer:', customerId, error);
+          processedCount++;
+          if (processedCount === customerIds.length) {
+            // Todos los clientes fueron procesados (incluso con errores)
+            this.pedidos = orders;
+            this.pedidosFiltrados = orders;
+            this.isLoading = false;
+          }
+        }
+      });
     });
   }
 
@@ -719,6 +844,9 @@ export class PedidosPageComponent implements OnInit {
       // Filtro por estado
       const matchesStatus = !this.filtroEstado || pedido.status === this.filtroEstado;
 
+      // Filtro por zona
+      const matchesZone = !this.filtroZona || pedido.customerZoneId === this.filtroZona;
+
       // Filtro por fecha desde
       const matchesFechaDesde = !this.filtroFechaDesde ||
         new Date(pedido.createdAt) >= new Date(this.filtroFechaDesde);
@@ -727,13 +855,14 @@ export class PedidosPageComponent implements OnInit {
       const matchesFechaHasta = !this.filtroFechaHasta ||
         new Date(pedido.createdAt) <= new Date(this.filtroFechaHasta + 'T23:59:59');
 
-      return matchesSearch && matchesStatus && matchesFechaDesde && matchesFechaHasta;
+      return matchesSearch && matchesStatus && matchesZone && matchesFechaDesde && matchesFechaHasta;
     });
   }
 
   limpiarFiltros(): void {
     this.searchTerm = '';
     this.filtroEstado = '';
+    this.filtroZona = '';
     this.filtroFechaDesde = '';
     this.filtroFechaHasta = '';
     this.applyFilters();
@@ -771,13 +900,43 @@ export class PedidosPageComponent implements OnInit {
   }
 
   verDetalle(pedido: Order): void {
-    this.selectedOrderDetails = pedido;
-    this.showDetailsModal = true;
+    // Cargar los datos completos del cliente incluyendo la zona
+    this.customerService.getById(pedido.customerId).subscribe({
+      next: (customer: Customer) => {
+        // Buscar la zona del cliente
+        const zone = this.zones.find(z => z.id === customer.zoneId);
+
+        // Guardar los detalles completos del cliente
+        this.customerDetails = customer;
+
+        // Enriquecer el pedido con los datos completos del cliente
+        this.selectedOrderDetails = {
+          ...pedido,
+          customerName: customer.name,
+          customerAddress: customer.address,
+          customerCity: customer.city,
+          customerZoneId: customer.zoneId,
+          customerZoneName: customer.zoneName,
+          customerZoneColor: zone?.color || '#6366f1'
+        };
+
+        this.showDetailsModal = true;
+      },
+      error: (error) => {
+        console.error('Error loading customer details:', error);
+        // Si hay error, mostrar los detalles que tenemos
+        this.customerDetails = null;
+        this.selectedOrderDetails = pedido;
+        this.showDetailsModal = true;
+        this.toastService.error('No se pudieron cargar todos los detalles del cliente');
+      }
+    });
   }
 
   closeDetailsModal(): void {
     this.showDetailsModal = false;
     this.selectedOrderDetails = null;
+    this.customerDetails = null;
   }
 
   loadDealers(): void {

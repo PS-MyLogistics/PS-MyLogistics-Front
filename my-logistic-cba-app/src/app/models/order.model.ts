@@ -36,6 +36,9 @@ export interface Order {
   customerName?: string;
   customerAddress?: string;
   customerCity?: string;
+  customerZoneId?: string;
+  customerZoneName?: string;
+  customerZoneColor?: string;
   items: OrderItem[];
   totalAmount: number;
   status: string;

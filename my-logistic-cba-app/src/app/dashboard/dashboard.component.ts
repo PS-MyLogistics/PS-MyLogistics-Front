@@ -46,6 +46,13 @@ import { Role } from '../models/user.model';
             <span>Clientes</span>
           </a>
 
+          <a *ngIf="!isDealer()" [routerLink]="['/dashboard/zonas']" routerLinkActive="active" class="nav-item">
+            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+            </svg>
+            <span>Zonas</span>
+          </a>
+
           <a *ngIf="!isDealer()" [routerLink]="['/dashboard/productos']" routerLinkActive="active" class="nav-item">
             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8.01-4.1a2 2 0 00-1.98 0L2 7v10a2 2 0 002 2h16a2 2 0 002-2V7zM12 2v10m0 0L6 8m6 4l6-4"></path>
@@ -628,6 +635,10 @@ export class DashboardComponent implements OnInit {
     const url = this.router.url;
     if (url.includes('pedidos')) {
       this.currentPageTitle = 'Pedidos';
+    } else if (url.includes('clientes')) {
+      this.currentPageTitle = 'Clientes';
+    } else if (url.includes('zonas')) {
+      this.currentPageTitle = 'Zonas';
     } else if (url.includes('productos')) {
       this.currentPageTitle = 'Productos';
     } else if (url.includes('usuarios')) {

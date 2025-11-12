@@ -11,6 +11,7 @@ export interface CustomerCreationRequest {
   notes?: string;
   type?: string;
   isActive?: boolean;
+  zoneId?: string;
 }
 
 export interface Customer {
@@ -28,5 +29,7 @@ export interface Customer {
   notes?: string;
   type?: string;
   isActive: boolean;
+  zoneId?: string;
+  zoneName?: string;
   createdAt: string;
 }

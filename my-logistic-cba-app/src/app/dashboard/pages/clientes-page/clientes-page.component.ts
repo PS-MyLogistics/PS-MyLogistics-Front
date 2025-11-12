@@ -2,9 +2,11 @@ import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CustomerService } from '../../../services/customer.service';
+import { ZoneService } from '../../../services/zone.service';
 import { ToastService } from '../../../services/toast.service';
 import { AuthService } from '../../../services/auth.service';
 import { Customer, CustomerCreationRequest } from '../../../models/customer.model';
+import { ZoneResponse } from '../../../models/zone.model';
 import { Role } from '../../../models/user.model';
 
 @Component({
@@ -16,12 +18,14 @@ import { Role } from '../../../models/user.model';
 })
 export class ClientesPageComponent implements OnInit {
   private customerService = inject(CustomerService);
+  private zoneService = inject(ZoneService);
   private toastService = inject(ToastService);
   private authService = inject(AuthService);
 
   clientes: any[] = [];
   clientesFiltrados: any[] = [];
   clientesOriginales: Customer[] = [];
+  zones: ZoneResponse[] = [];
   isLoading = false;
   errorMessage = '';
   isDealer = false;
@@ -49,6 +53,7 @@ export class ClientesPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.isDealer = this.authService.hasRole(Role.DEALER);
+    this.loadZones();
     this.loadCustomers();
   }
 
@@ -69,6 +74,18 @@ export class ClientesPageComponent implements OnInit {
     };
   }
 
+  loadZones(): void {
+    this.zoneService.getAll().subscribe({
+      next: (zones) => {
+        this.zones = zones;
+      },
+      error: (error) => {
+        console.error('Error loading zones:', error);
+        this.toastService.error('Error al cargar zonas');
+      }
+    });
+  }
+
   loadCustomers(): void {
     this.isLoading = true;
     this.errorMessage = '';
@@ -76,25 +93,31 @@ export class ClientesPageComponent implements OnInit {
     this.customerService.getAll().subscribe({
       next: (customers) => {
         this.clientesOriginales = customers;
-        this.clientes = customers.map(customer => ({
-          id: customer.id,
-          nombre: customer.name,
-          email: customer.email,
-          telefono: customer.phoneNumber,
-          direccion: customer.address,
-          ciudad: customer.city,
-          provincia: customer.state,
-          pais: customer.country,
-          codigoPostal: customer.postalCode,
-          timbre: customer.doorbell,
-          notas: customer.notes,
-          tipo: customer.type || 'Regular',
-          estado: customer.isActive ? 'Activo' : 'Inactivo',
-          estadoColor: customer.isActive ? 'success' : 'secondary',
-          isActive: customer.isActive,
-          iniciales: this.getInitials(customer.name),
-          createdAt: customer.createdAt
-        }));
+        this.clientes = customers.map(customer => {
+          const zone = this.zones.find(z => z.id === customer.zoneId);
+          return {
+            id: customer.id,
+            nombre: customer.name,
+            email: customer.email,
+            telefono: customer.phoneNumber,
+            direccion: customer.address,
+            ciudad: customer.city,
+            provincia: customer.state,
+            pais: customer.country,
+            codigoPostal: customer.postalCode,
+            timbre: customer.doorbell,
+            notas: customer.notes,
+            tipo: customer.type || 'Regular',
+            estado: customer.isActive ? 'Activo' : 'Inactivo',
+            estadoColor: customer.isActive ? 'success' : 'secondary',
+            isActive: customer.isActive,
+            iniciales: this.getInitials(customer.name),
+            createdAt: customer.createdAt,
+            zoneId: customer.zoneId,
+            zoneName: customer.zoneName,
+            zoneColor: zone?.color || '#6366f1'
+          };
+        });
         this.clientesFiltrados = this.clientes;
         this.isLoading = false;
       },

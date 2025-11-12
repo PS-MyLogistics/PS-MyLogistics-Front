@@ -78,6 +78,7 @@
               <th>Email</th>
               <th>Teléfono</th>
               <th>Ciudad</th>
+              <th>Zona</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -95,6 +96,12 @@
               <td>{{ cliente.email }}</td>
               <td>{{ cliente.telefono }}</td>
               <td>{{ cliente.ciudad }}, {{ cliente.provincia }}</td>
+              <td>
+                <span *ngIf="cliente.zoneName" class="badge" [style.background-color]="cliente.zoneColor" [style.color]="'white'">
+                  {{ cliente.zoneName }}
+                </span>
+                <span *ngIf="!cliente.zoneName" class="text-muted">Sin zona</span>
+              </td>
               <td>
                 <span [class]="'badge bg-' + cliente.estadoColor">
                   {{ cliente.estado }}
@@ -282,6 +289,22 @@
             </div>
 
             <div class="mb-3">
+              <label for="zone" class="form-label">Zona</label>
+              <select
+                class="form-select"
+                id="zone"
+                [(ngModel)]="newCustomer.zoneId"
+                name="zone"
+              >
+                <option value="">Sin zona asignada</option>
+                <option *ngFor="let zone of zones" [value]="zone.id">
+                  {{ zone.name }}
+                </option>
+              </select>
+              <small class="form-text text-muted">Opcional: Asignar cliente a una zona</small>
+            </div>
+
+            <div class="mb-3">
               <label for="notes" class="form-label">Notas</label>
               <textarea
                 class="form-control"
@@ -459,6 +482,22 @@
                   <option value="Corporativo">Corporativo</option>
                 </select>
               </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="editZone" class="form-label">Zona</label>
+              <select
+                class="form-select"
+                id="editZone"
+                [(ngModel)]="editCustomer.zoneId"
+                name="zone"
+              >
+                <option value="">Sin zona asignada</option>
+                <option *ngFor="let zone of zones" [value]="zone.id">
+                  {{ zone.name }}
+                </option>
+              </select>
+              <small class="form-text text-muted">Opcional: Asignar cliente a una zona</small>
             </div>
 
             <div class="mb-3">

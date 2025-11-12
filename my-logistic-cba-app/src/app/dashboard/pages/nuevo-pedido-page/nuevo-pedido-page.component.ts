@@ -5,10 +5,12 @@ import { Router } from '@angular/router';
 import { OrderService } from '../../../services/order.service';
 import { ProductService } from '../../../services/product.service';
 import { CustomerService } from '../../../services/customer.service';
+import { ZoneService } from '../../../services/zone.service';
 import { ToastService } from '../../../services/toast.service';
 import { OrderCreationRequest, OrderItemRequest } from '../../../models/order.model';
 import { CustomerCreationRequest, Customer } from '../../../models/customer.model';
 import { ProductResponse } from '../../../models/product.model';
+import { ZoneResponse } from '../../../models/zone.model';
 
 interface ProductoEnPedido {
   productId: string;
@@ -80,6 +82,7 @@ interface ProductoEnPedido {
                 <option value="">-- Selecciona un cliente --</option>
                 <option *ngFor="let customer of customersDisponibles" [value]="customer.id">
                   {{ customer.name }} - {{ customer.email }}
+                  <span *ngIf="customer.zoneName"> - {{ customer.zoneName }}</span>
                 </option>
               </select>
             </div>
@@ -120,6 +123,15 @@ interface ProductoEnPedido {
               <div class="col-md-6">
                 <label class="form-label-custom">Timbre</label>
                 <input type="text" class="form-control-custom" [(ngModel)]="cliente.doorbell" placeholder="Ej: A, 1B, etc." [disabled]="useExistingCustomer">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label-custom">Zona</label>
+                <select class="form-control-custom" [(ngModel)]="cliente.zoneId" [disabled]="useExistingCustomer">
+                  <option value="">Sin zona asignada</option>
+                  <option *ngFor="let zone of zones" [value]="zone.id">
+                    {{ zone.name }}
+                  </option>
+                </select>
               </div>
               <div class="col-12">
                 <label class="form-label-custom">Notas Adicionales</label>
@@ -588,12 +600,14 @@ export class NuevoPedidoPageComponent implements OnInit {
   private orderService = inject(OrderService);
   private productService = inject(ProductService);
   private customerService = inject(CustomerService);
+  private zoneService = inject(ZoneService);
   private toastService = inject(ToastService);
 
   // Customer selection mode
   useExistingCustomer: boolean = false;
   selectedCustomerId: string = '';
   customersDisponibles: Customer[] = [];
+  zones: ZoneResponse[] = [];
 
   // Customer information
   cliente: CustomerCreationRequest = {
@@ -622,8 +636,21 @@ export class NuevoPedidoPageComponent implements OnInit {
   isCreatingOrder = false;
 
   ngOnInit(): void {
+    this.loadZones();
     this.loadProducts();
     this.loadCustomers();
+  }
+
+  loadZones(): void {
+    this.zoneService.getAll().subscribe({
+      next: (zones) => {
+        this.zones = zones;
+      },
+      error: (error) => {
+        console.error('Error loading zones:', error);
+        this.toastService.error('Error al cargar zonas');
+      }
+    });
   }
 
   loadCustomers(): void {
@@ -674,7 +701,8 @@ export class NuevoPedidoPageComponent implements OnInit {
           state: selectedCustomer.state,
           country: selectedCustomer.country,
           doorbell: selectedCustomer.doorbell,
-          notes: selectedCustomer.notes || ''
+          notes: selectedCustomer.notes || '',
+          zoneId: selectedCustomer.zoneId
         };
       }
     }
