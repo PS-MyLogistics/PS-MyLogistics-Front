@@ -44,6 +44,14 @@ export class UserService {
   }
 
   /**
+   * Delete a user from the tenant
+   */
+  deleteUser(userId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/users/delete/${userId}`)
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Handle HTTP errors
    */
   private handleError(error: HttpErrorResponse) {

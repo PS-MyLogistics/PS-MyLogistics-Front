@@ -1221,26 +1221,6 @@ export class UsuariosPageComponent implements OnInit {
 
     this.isDeleting = true;
 
-    // TODO: Implementar llamada al backend para eliminar usuario
-    // Por ahora, simularemos la eliminación
-    setTimeout(() => {
-      this.isDeleting = false;
-
-      // Mostrar toast de éxito
-      this.toastService.success(
-        `Usuario ${this.userToDelete.nombre} eliminado exitosamente`,
-        4000
-      );
-
-      // Recargar la lista de usuarios
-      this.loadUsers();
-
-      // Cerrar el modal
-      this.closeDeleteModal();
-    }, 1000);
-
-    // Cuando tengas el endpoint del backend, reemplaza el código anterior con:
-    /*
     this.userService.deleteUser(this.userToDelete.id).subscribe({
       next: () => {
         this.isDeleting = false;
@@ -1254,9 +1234,7 @@ export class UsuariosPageComponent implements OnInit {
       error: (error) => {
         this.isDeleting = false;
         this.toastService.error(error.message || 'Error al eliminar el usuario', 5000);
-        console.error('Error deleting user:', error);
       }
     });
-    */
   }
 }
