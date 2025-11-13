@@ -12,6 +12,8 @@ export interface CustomerCreationRequest {
   type?: string;
   isActive?: boolean;
   zoneId?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface Customer {
@@ -31,5 +33,7 @@ export interface Customer {
   isActive: boolean;
   zoneId?: string;
   zoneName?: string;
+  latitude?: number;
+  longitude?: number;
   createdAt: string;
 }

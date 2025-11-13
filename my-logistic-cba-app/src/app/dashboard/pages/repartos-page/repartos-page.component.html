@@ -1,0 +1,240 @@
+<div class="page-container">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h5 class="mb-1">Gestión de Repartos</h5>
+      <p class="text-muted mb-0">Administra las distribuciones y asignaciones de pedidos</p>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Buscar</label>
+          <input
+            type="text"
+            class="form-control"
+            [(ngModel)]="searchTerm"
+            [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="applyFilters()"
+            placeholder="Buscar por repartidor, nº pedido..."
+          >
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Repartidor</label>
+          <select class="form-select" [(ngModel)]="filtroDealer" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
+            <option value="">Todos</option>
+            <option *ngFor="let dealer of dealers" [value]="dealer.id">{{ dealer.username }}</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Estado</label>
+          <select class="form-select" [(ngModel)]="filtroEstado" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
+            <option value="">Todos los estados</option>
+            <option value="PENDING">Pendiente</option>
+            <option value="ASSIGNED">Asignado</option>
+            <option value="IN_PROGRESS">En Progreso</option>
+            <option value="COMPLETED">Completado</option>
+            <option value="CANCELLED">Cancelado</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Desde</label>
+          <input
+            type="date"
+            class="form-control"
+            [(ngModel)]="filtroFechaDesde"
+            [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="applyFilters()"
+          >
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Hasta</label>
+          <input
+            type="date"
+            class="form-control"
+            [(ngModel)]="filtroFechaHasta"
+            [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="applyFilters()"
+          >
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+          <button class="btn btn-secondary w-100" (click)="limpiarFiltros()" title="Limpiar filtros">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+    <p class="mt-3 text-muted">Cargando repartos...</p>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!isLoading && repartosFiltrados.length === 0" class="text-center py-5">
+    <svg class="mb-3" width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+    </svg>
+    <h6>No se encontraron repartos</h6>
+    <p class="text-muted">{{ searchTerm || filtroDealer || filtroEstado || filtroFechaDesde || filtroFechaHasta ? 'Intenta ajustar los filtros' : 'No hay repartos registrados' }}</p>
+  </div>
+
+  <!-- Tabla de Repartos -->
+  <div class="card" *ngIf="!isLoading && repartosFiltrados.length > 0">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Fecha Creación</th>
+              <th>Repartidor</th>
+              <th>Pedidos</th>
+              <th>Inicio Programado</th>
+              <th>Fin Programado</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let reparto of repartosFiltrados">
+              <td>{{ formatDate(reparto.createdAt) }}</td>
+              <td>
+                <div>
+                  <strong>{{ reparto.dealerName }}</strong>
+                  <br>
+                  <small class="text-muted">{{ reparto.dealerEmail }}</small>
+                </div>
+              </td>
+              <td>
+                <span class="badge bg-primary">{{ reparto.orderCount }} pedido(s)</span>
+              </td>
+              <td>{{ formatDateTime(reparto.startProgramDateTime) }}</td>
+              <td>{{ formatDateTime(reparto.endProgramDateTime) }}</td>
+              <td>
+                <span [class]="'badge bg-' + reparto.statusColor">
+                  {{ reparto.statusLabel }}
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-icon" (click)="verDetalle(reparto)" title="Ver detalles">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info de resultados -->
+  <div class="mt-3 text-muted" *ngIf="!isLoading && repartosFiltrados.length > 0">
+    Mostrando {{ repartosFiltrados.length }} de {{ repartos.length }} repartos
+  </div>
+
+  <!-- Modal Detalles del Reparto -->
+  <div class="modal fade" [class.show]="showDetailsModal" [style.display]="showDetailsModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showDetailsModal" (click)="closeDetailsModal()"></div>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Detalles del Reparto</h5>
+          <button type="button" class="btn-close" (click)="closeDetailsModal()"></button>
+        </div>
+        <div class="modal-body" *ngIf="selectedReparto">
+          <!-- Información General -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Fecha de Creación</label>
+                <p class="detail-value">{{ formatDate(selectedReparto.createdAt) }}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Estado</label>
+                <p class="detail-value">
+                  <span [class]="'badge bg-' + selectedReparto.statusColor">
+                    {{ selectedReparto.statusLabel }}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información del Repartidor -->
+          <h6 class="section-title">Repartidor Asignado</h6>
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Nombre</label>
+                <p class="detail-value">{{ selectedReparto.dealerName }}</p>
+              </div>
+            </div>
+            <div class="col-md-6" *ngIf="selectedReparto.dealerEmail">
+              <div class="detail-group">
+                <label class="detail-label">Email</label>
+                <p class="detail-value">{{ selectedReparto.dealerEmail }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fechas Programadas -->
+          <h6 class="section-title">Fechas Programadas</h6>
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Inicio Programado</label>
+                <p class="detail-value">{{ formatDateTime(selectedReparto.startProgramDateTime) }}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Fin Programado</label>
+                <p class="detail-value">{{ formatDateTime(selectedReparto.endProgramDateTime) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pedidos Asignados -->
+          <h6 class="section-title">Pedidos Asignados ({{ selectedReparto.orderCount }})</h6>
+          <div class="mb-3">
+            <div class="list-group">
+              <div *ngFor="let orderNum of selectedReparto.orderNumbers" class="list-group-item">
+                <strong>#{{ orderNum }}</strong>
+              </div>
+            </div>
+            <div *ngIf="selectedReparto.orderCount === 0" class="alert alert-info mb-0">
+              No hay pedidos asignados a este reparto
+            </div>
+          </div>
+
+          <!-- Notas -->
+          <div *ngIf="selectedReparto.notes" class="mb-3">
+            <h6 class="section-title">Notas</h6>
+            <div class="alert alert-info mb-0">
+              {{ selectedReparto.notes }}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeDetailsModal()">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -4,16 +4,16 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { OrderService } from '../../../services/order.service';
 import { ToastService } from '../../../services/toast.service';
-import { UserService } from '../../../services/user.service';
-import { DistributionService } from '../../../services/distribution.service';
 import { ZoneService } from '../../../services/zone.service';
 import { CustomerService } from '../../../services/customer.service';
 import { AuthService } from '../../../services/auth.service';
+import { UserService } from '../../../services/user.service';
+import { DistributionService } from '../../../services/distribution.service';
 import { Order } from '../../../models/order.model';
-import { UserDto, Role } from '../../../models/user.model';
-import { DistributionCreationRequest } from '../../../models/distribution.model';
+import { Role, UserDto } from '../../../models/user.model';
 import { ZoneResponse } from '../../../models/zone.model';
 import { Customer } from '../../../models/customer.model';
+import { DistributionCreationRequest } from '../../../models/distribution.model';
 
 @Component({
   selector: 'app-pedidos-page',
@@ -21,18 +21,30 @@ import { Customer } from '../../../models/customer.model';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="page-container">
-      <!-- Header con botón -->
+      <!-- Header con botones -->
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h5 class="mb-1">{{ isDealer ? 'Mis Pedidos' : 'Gestión de Pedidos' }}</h5>
-          <p class="text-muted mb-0">{{ isDealer ? 'Pedidos asignados a ti' : 'Administra todos los pedidos del sistema' }}</p>
+          <h5 class="mb-1">Gestión de Pedidos</h5>
+          <p class="text-muted mb-0">Administra todos los pedidos del sistema</p>
         </div>
-        <button *ngIf="!isDealer" class="btn btn-primary" (click)="goToNuevoPedido()">
-          <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          Nuevo Pedido
-        </button>
+        <div class="d-flex gap-2">
+          <button
+            *ngIf="!isDealer && selectedOrders.length > 0"
+            class="btn btn-success"
+            (click)="openCreateDistributionModal()"
+          >
+            <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Crear Reparto ({{ selectedOrders.length }})
+          </button>
+          <button *ngIf="!isDealer" class="btn btn-primary" (click)="goToNuevoPedido()">
+            <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Nuevo Pedido
+          </button>
+        </div>
       </div>
 
       <!-- Filtros -->
@@ -123,19 +135,37 @@ import { Customer } from '../../../models/customer.model';
             <table class="table table-hover mb-0">
               <thead>
                 <tr>
+                  <th *ngIf="!isDealer" style="width: 40px;">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      [checked]="allSelectableOrdersSelected()"
+                      (change)="toggleSelectAll()"
+                      title="Seleccionar todos"
+                    >
+                  </th>
                   <th>Nº Pedido</th>
                   <th>Fecha</th>
                   <th>Cliente</th>
                   <th>Dirección</th>
                   <th>Zona</th>
                   <th class="text-end">Total</th>
-                  <th>Repartidor</th>
                   <th>Estado</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let pedido of pedidosFiltrados">
+                  <td *ngIf="!isDealer">
+                    <input
+                      *ngIf="!pedido.distributionId"
+                      type="checkbox"
+                      class="form-check-input"
+                      [checked]="isOrderSelected(pedido.id)"
+                      (change)="toggleOrderSelection(pedido.id)"
+                      title="Seleccionar pedido"
+                    >
+                  </td>
                   <td><strong>#{{ pedido.orderNumber }}</strong></td>
                   <td>{{ formatDate(pedido.createdAt) }}</td>
                   <td>{{ pedido.customerName || 'N/A' }}</td>
@@ -152,27 +182,15 @@ import { Customer } from '../../../models/customer.model';
                     <strong>\${{ pedido.totalAmount | number:'1.2-2' }}</strong>
                   </td>
                   <td>
-                    <span *ngIf="pedido.dealerName" class="text-primary">{{ pedido.dealerName }}</span>
-                    <button *ngIf="!pedido.dealerName && !isDealer" class="btn btn-sm btn-outline-primary" (click)="openAssignDealerModal(pedido)">
-                      Asignar
-                    </button>
-                    <span *ngIf="!pedido.dealerName && isDealer" class="text-muted">-</span>
-                  </td>
-                  <td>
                     <span [class]="'badge bg-' + getStatusColor(pedido.status)">
                       {{ getStatusLabel(pedido.status) }}
                     </span>
                   </td>
                   <td>
-                    <button class="btn btn-sm btn-icon me-2" (click)="verDetalle(pedido)" title="Ver detalles">
+                    <button class="btn btn-sm btn-icon" (click)="verDetalle(pedido)" title="Ver detalles">
                       <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                      </svg>
-                    </button>
-                    <button *ngIf="pedido.dealerName && !isDealer" class="btn btn-sm btn-icon" (click)="openAssignDealerModal(pedido)" title="Cambiar repartidor">
-                      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                       </svg>
                     </button>
                   </td>
@@ -188,41 +206,73 @@ import { Customer } from '../../../models/customer.model';
         Mostrando {{ pedidosFiltrados.length }} de {{ pedidos.length }} pedidos
       </div>
 
-      <!-- Modal Asignar Repartidor -->
-      <div class="modal fade" [class.show]="showAssignDealerModal" [style.display]="showAssignDealerModal ? 'block' : 'none'" tabindex="-1">
-        <div class="modal-backdrop fade" [class.show]="showAssignDealerModal" (click)="closeAssignDealerModal()"></div>
+      <!-- Modal Crear Distribución -->
+      <div class="modal fade" [class.show]="showCreateDistributionModal" [style.display]="showCreateDistributionModal ? 'block' : 'none'" tabindex="-1">
+        <div class="modal-backdrop fade" [class.show]="showCreateDistributionModal" (click)="closeCreateDistributionModal()"></div>
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title">{{ selectedOrder?.dealerName ? 'Cambiar' : 'Asignar' }} Repartidor</h5>
-              <button type="button" class="btn-close" (click)="closeAssignDealerModal()"></button>
+              <h5 class="modal-title">Crear Nuevo Reparto</h5>
+              <button type="button" class="btn-close" (click)="closeCreateDistributionModal()"></button>
             </div>
             <div class="modal-body">
+              <p class="text-muted mb-3">
+                Selecciona el repartidor que se encargará de entregar los {{ selectedOrders.length }} pedido(s) seleccionado(s).
+              </p>
+
               <div class="mb-3">
-                <label class="form-label fw-semibold">Pedido</label>
-                <p class="form-control-plaintext">#{{ selectedOrder?.orderNumber }}</p>
-              </div>
-              <div class="mb-3">
-                <label class="form-label fw-semibold">Cliente</label>
-                <p class="form-control-plaintext">{{ selectedOrder?.customerName }}</p>
-              </div>
-              <div class="mb-3">
-                <label for="dealerSelect" class="form-label fw-semibold">Repartidor *</label>
-                <select class="form-select" id="dealerSelect" [(ngModel)]="selectedDealerId" name="dealerId" required>
-                  <option value="">Seleccionar repartidor...</option>
-                  <option *ngFor="let dealer of dealers" [value]="dealer.id">{{ dealer.username }}</option>
+                <label class="form-label">Repartidor *</label>
+                <select class="form-select" [(ngModel)]="selectedDealerId" [ngModelOptions]="{standalone: true}">
+                  <option value="">-- Selecciona un repartidor --</option>
+                  <option *ngFor="let dealer of dealers" [value]="dealer.id">
+                    {{ dealer.username }} - {{ dealer.email }}
+                  </option>
                 </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Fecha y Hora de Inicio</label>
+                <input
+                  type="datetime-local"
+                  class="form-control"
+                  [(ngModel)]="distributionStartDate"
+                  [ngModelOptions]="{standalone: true}"
+                >
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Fecha y Hora de Fin</label>
+                <input
+                  type="datetime-local"
+                  class="form-control"
+                  [(ngModel)]="distributionEndDate"
+                  [ngModelOptions]="{standalone: true}"
+                >
+              </div>
+
+              <div class="alert alert-info">
+                <strong>Pedidos seleccionados:</strong>
+                <ul class="mb-0 mt-2">
+                  <li *ngFor="let orderId of selectedOrders">
+                    Pedido #{{ getOrderNumber(orderId) }}
+                  </li>
+                </ul>
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="closeAssignDealerModal()" [disabled]="isAssigning">
+              <button type="button" class="btn btn-secondary" (click)="closeCreateDistributionModal()">
                 Cancelar
               </button>
-              <button type="button" class="btn btn-primary" (click)="assignDealer()" [disabled]="!selectedDealerId || isAssigning">
-                <span *ngIf="!isAssigning">Asignar</span>
-                <span *ngIf="isAssigning">
-                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                  Asignando...
+              <button
+                type="button"
+                class="btn btn-success"
+                [disabled]="!selectedDealerId || isCreatingDistribution"
+                (click)="createDistribution()"
+              >
+                <span *ngIf="!isCreatingDistribution">Crear Reparto</span>
+                <span *ngIf="isCreatingDistribution">
+                  <span class="spinner-border spinner-border-sm me-2"></span>
+                  Creando...
                 </span>
               </button>
             </div>
@@ -323,17 +373,6 @@ import { Customer } from '../../../models/customer.model';
                 </div>
               </div>
 
-              <!-- Repartidor Asignado -->
-              <h6 class="section-title" *ngIf="selectedOrderDetails.dealerName">Repartidor</h6>
-              <div class="row mb-4" *ngIf="selectedOrderDetails.dealerName">
-                <div class="col-md-6">
-                  <div class="detail-group">
-                    <label class="detail-label">Nombre del Repartidor</label>
-                    <p class="detail-value text-primary">{{ selectedOrderDetails.dealerName }}</p>
-                  </div>
-                </div>
-              </div>
-
               <!-- Productos del Pedido -->
               <h6 class="section-title">Productos</h6>
               <div class="table-responsive mb-3">
@@ -426,6 +465,27 @@ import { Customer } from '../../../models/customer.model';
       background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
     }
 
+    .btn-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+
+    .btn-success:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
     .btn-secondary {
       background: #6b7280;
       border: none;
@@ -436,6 +496,20 @@ import { Customer } from '../../../models/customer.model';
 
     .btn-secondary:hover {
       background: #4b5563;
+    }
+
+    .form-check-input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .form-check-input:hover {
+      border-color: #2563eb;
+    }
+
+    .gap-2 {
+      gap: 0.5rem;
     }
 
     .table {
@@ -557,26 +631,6 @@ import { Customer } from '../../../models/customer.model';
       font-weight: 500;
     }
 
-    .btn-outline-primary {
-      border: 1px solid #3b82f6;
-      color: #3b82f6;
-      background: transparent;
-      padding: 4px 12px;
-      font-size: 13px;
-      border-radius: 6px;
-    }
-
-    .btn-outline-primary:hover {
-      background: #3b82f6;
-      color: white;
-    }
-
-    .spinner-border-sm {
-      width: 1rem;
-      height: 1rem;
-      border-width: 0.15em;
-    }
-
     .modal-lg {
       max-width: 800px;
     }
@@ -649,21 +703,19 @@ import { Customer } from '../../../models/customer.model';
 export class PedidosPageComponent implements OnInit {
   private router = inject(Router);
   private orderService = inject(OrderService);
-  private userService = inject(UserService);
-  private distributionService = inject(DistributionService);
   private zoneService = inject(ZoneService);
   private customerService = inject(CustomerService);
   private toastService = inject(ToastService);
   private authService = inject(AuthService);
+  private userService = inject(UserService);
+  private distributionService = inject(DistributionService);
 
   pedidos: Order[] = [];
   pedidosFiltrados: Order[] = [];
   isLoading = false;
-  distributions: any[] = [];
   zones: ZoneResponse[] = [];
   isDealer = false;
-  currentUserId: string | null = null;
-  currentUsername: string | null = null;
+  dealers: UserDto[] = [];
 
   // Filtros
   searchTerm: string = '';
@@ -672,24 +724,36 @@ export class PedidosPageComponent implements OnInit {
   filtroFechaDesde: string = '';
   filtroFechaHasta: string = '';
 
-  // Modal asignar dealer
-  showAssignDealerModal = false;
-  selectedOrder: Order | null = null;
-  dealers: UserDto[] = [];
-  selectedDealerId: string = '';
-  isAssigning = false;
-
   // Modal detalles
   showDetailsModal = false;
   selectedOrderDetails: Order | null = null;
   customerDetails: Customer | null = null;
 
+  // Selección de pedidos y creación de distribución
+  selectedOrders: string[] = [];
+  showCreateDistributionModal = false;
+  selectedDealerId: string = '';
+  distributionStartDate: string = '';
+  distributionEndDate: string = '';
+  isCreatingDistribution = false;
+
   ngOnInit(): void {
-    this.currentUsername = this.authService.getCurrentUsername();
     this.isDealer = this.authService.hasRole(Role.DEALER);
-    // Load zones and dealers first, then distributions (which loads orders)
     this.loadZones();
     this.loadDealers();
+    this.loadOrders();
+  }
+
+  loadDealers(): void {
+    this.userService.getAll().subscribe({
+      next: (users) => {
+        this.dealers = users.filter(user => user.roles.includes(Role.DEALER));
+      },
+      error: (error) => {
+        console.error('Error loading dealers:', error);
+        this.toastService.error('Error al cargar repartidores');
+      }
+    });
   }
 
   loadZones(): void {
@@ -708,54 +772,8 @@ export class PedidosPageComponent implements OnInit {
     this.isLoading = true;
     this.orderService.getAll().subscribe({
       next: (orders) => {
-        console.log('DEBUG - isDealer:', this.isDealer);
-        console.log('DEBUG - currentUserId:', this.currentUserId);
-        console.log('DEBUG - currentUsername:', this.currentUsername);
-        console.log('DEBUG - distributions:', this.distributions);
-        console.log('DEBUG - dealers:', this.dealers);
-
-        // Enriquecer pedidos con información de distribuciones
-        let enrichedOrders = orders.map(order => {
-          // Buscar si este pedido está en alguna distribución
-          const distribution = this.distributions.find(dist =>
-            dist.orderIds && dist.orderIds.includes(order.id)
-          );
-
-          if (distribution && distribution.dealerId) {
-            // Buscar el dealer en la lista de dealers
-            const dealer = this.dealers.find(d => d.id === distribution.dealerId);
-            return {
-              ...order,
-              dealerId: distribution.dealerId,
-              dealerName: dealer?.username || 'Repartidor',
-              distributionId: distribution.id
-            };
-          }
-
-          return order;
-        });
-
-        console.log('DEBUG - enrichedOrders before filter:', enrichedOrders);
-
-        // Si es dealer, filtrar solo sus pedidos
-        if (this.isDealer && this.currentUserId) {
-          const filteredOrders = enrichedOrders.filter(order => order.dealerId === this.currentUserId);
-          console.log('DEBUG - enrichedOrders after dealer filter:', filteredOrders);
-
-          // Si no hay distribuciones cargadas (error del backend), mostrar advertencia
-          if (this.distributions.length === 0) {
-            console.warn('ADVERTENCIA: No hay distribuciones disponibles. El backend /distributions/getAll está fallando.');
-            console.warn('WORKAROUND: Se mostrarán todos los pedidos porque no se puede determinar cuáles están asignados al dealer.');
-            // Mostrar todos los pedidos si no hay distribuciones
-            enrichedOrders = orders;
-          } else {
-            // Usar pedidos filtrados solo si tenemos distribuciones válidas
-            enrichedOrders = filteredOrders;
-          }
-        }
-
         // Enriquecer con datos de clientes y zonas
-        this.enrichOrdersWithCustomerData(enrichedOrders);
+        this.enrichOrdersWithCustomerData(orders);
       },
       error: (error) => {
         this.isLoading = false;
@@ -812,24 +830,6 @@ export class PedidosPageComponent implements OnInit {
           }
         }
       });
-    });
-  }
-
-  loadDistributions(): void {
-    this.distributionService.getAllDistributions().subscribe({
-      next: (distributions) => {
-        this.distributions = distributions;
-        console.log('DEBUG - Distributions loaded successfully:', distributions.length);
-        // Cargar pedidos después de cargar distribuciones
-        this.loadOrders();
-      },
-      error: (error) => {
-        console.error('Error loading distributions:', error);
-        console.warn('ADVERTENCIA: No se pudieron cargar las distribuciones. Este es un problema del backend.');
-        this.distributions = [];
-        // Cargar pedidos de todas formas
-        this.loadOrders();
-      }
     });
   }
 
@@ -939,100 +939,125 @@ export class PedidosPageComponent implements OnInit {
     this.customerDetails = null;
   }
 
-  loadDealers(): void {
-    // Si es dealer, obtener su ID desde el endpoint /me
-    if (this.isDealer) {
-      this.userService.getCurrentUser().subscribe({
-        next: (currentUser) => {
-          this.currentUserId = currentUser.id;
-          console.log('DEBUG - currentUserId set to:', this.currentUserId);
-          // After getting current user ID, load distributions
-          this.loadDistributions();
-        },
-        error: (error) => {
-          console.error('Error loading current user:', error);
-          this.currentUserId = null;
-          // Still load distributions even if current user loading fails
-          this.loadDistributions();
+  goToNuevoPedido(): void {
+    this.router.navigate(['/dashboard/pedidos/nuevo']);
+  }
+
+  // Métodos de selección de pedidos
+  isOrderSelected(orderId: string): boolean {
+    return this.selectedOrders.includes(orderId);
+  }
+
+  toggleOrderSelection(orderId: string): void {
+    const index = this.selectedOrders.indexOf(orderId);
+    if (index > -1) {
+      this.selectedOrders.splice(index, 1);
+    } else {
+      this.selectedOrders.push(orderId);
+    }
+  }
+
+  allSelectableOrdersSelected(): boolean {
+    const selectableOrders = this.pedidosFiltrados.filter(p => !p.distributionId);
+    if (selectableOrders.length === 0) return false;
+    return selectableOrders.every(p => this.selectedOrders.includes(p.id));
+  }
+
+  someOrdersSelected(): boolean {
+    return this.selectedOrders.length > 0 && !this.allSelectableOrdersSelected();
+  }
+
+  toggleSelectAll(): void {
+    const selectableOrders = this.pedidosFiltrados.filter(p => !p.distributionId);
+    if (this.allSelectableOrdersSelected()) {
+      // Deseleccionar todos los pedidos seleccionables de la vista actual
+      selectableOrders.forEach(p => {
+        const index = this.selectedOrders.indexOf(p.id);
+        if (index > -1) {
+          this.selectedOrders.splice(index, 1);
         }
       });
     } else {
-      // Si no es dealer, cargar la lista de dealers para el modal de asignación
-      this.userService.getAll().subscribe({
-        next: (users) => {
-          // Filtrar solo usuarios con rol DEALER
-          this.dealers = users.filter(user => user.roles.includes(Role.DEALER));
-          // After dealers are loaded, load distributions
-          this.loadDistributions();
-        },
-        error: (error) => {
-          this.toastService.error('Error al cargar repartidores');
-          console.error('Error loading dealers:', error);
-          this.dealers = [];
-          // Still load distributions even if dealer loading fails
-          this.loadDistributions();
+      // Seleccionar todos los pedidos seleccionables de la vista actual
+      selectableOrders.forEach(p => {
+        if (!this.selectedOrders.includes(p.id)) {
+          this.selectedOrders.push(p.id);
         }
       });
     }
   }
 
-  openAssignDealerModal(order: Order): void {
-    this.selectedOrder = order;
-    this.selectedDealerId = order.dealerId || '';
-    this.showAssignDealerModal = true;
+  getOrderNumber(orderId: string): string {
+    const order = this.pedidos.find(p => p.id === orderId);
+    return order?.orderNumber || orderId;
   }
 
-  closeAssignDealerModal(): void {
-    this.showAssignDealerModal = false;
-    this.selectedOrder = null;
+  // Métodos del modal de crear distribución
+  openCreateDistributionModal(): void {
+    if (this.selectedOrders.length === 0) {
+      this.toastService.error('Debes seleccionar al menos un pedido');
+      return;
+    }
+    this.showCreateDistributionModal = true;
+  }
+
+  closeCreateDistributionModal(): void {
+    this.showCreateDistributionModal = false;
     this.selectedDealerId = '';
+    this.distributionStartDate = '';
+    this.distributionEndDate = '';
   }
 
-  assignDealer(): void {
-    if (!this.selectedOrder || !this.selectedDealerId) {
+  createDistribution(): void {
+    if (!this.selectedDealerId) {
+      this.toastService.error('Debes seleccionar un repartidor');
       return;
     }
 
-    this.isAssigning = true;
+    if (this.selectedOrders.length === 0) {
+      this.toastService.error('No hay pedidos seleccionados');
+      return;
+    }
 
-    // Crear una distribución con el pedido y el repartidor seleccionados
+    this.isCreatingDistribution = true;
+
+    // Convertir las fechas al formato ISO 8601 si están presentes
+    let startDateTime: string | undefined = undefined;
+    let endDateTime: string | undefined = undefined;
+
+    if (this.distributionStartDate && this.distributionStartDate.trim() !== '') {
+      const startDate = new Date(this.distributionStartDate);
+      startDateTime = startDate.toISOString();
+    }
+
+    if (this.distributionEndDate && this.distributionEndDate.trim() !== '') {
+      const endDate = new Date(this.distributionEndDate);
+      endDateTime = endDate.toISOString();
+    }
+
     const distributionRequest: DistributionCreationRequest = {
-      orderIds: [this.selectedOrder.id],
-      dealerId: this.selectedDealerId
+      dealerId: this.selectedDealerId,
+      orderIds: this.selectedOrders,
+      startProgramDateTime: startDateTime,
+      endProgramDateTime: endDateTime
     };
+
+    console.log('Creating distribution with request:', distributionRequest);
 
     this.distributionService.createDistribution(distributionRequest).subscribe({
       next: (distribution) => {
-        this.isAssigning = false;
-        const dealer = this.dealers.find(d => d.id === this.selectedDealerId);
-        const dealerName = dealer?.username || 'Repartidor';
-
-        // Actualizar el pedido localmente para reflejar el cambio inmediatamente
-        const orderIndex = this.pedidos.findIndex(p => p.id === this.selectedOrder!.id);
-        if (orderIndex !== -1) {
-          this.pedidos[orderIndex] = {
-            ...this.pedidos[orderIndex],
-            dealerId: this.selectedDealerId,
-            dealerName: dealerName,
-            distributionId: distribution.id
-          };
-        }
-
-        // Aplicar filtros para actualizar la vista filtrada
-        this.applyFilters();
-
-        this.toastService.success(`Repartidor ${dealerName} asignado al pedido #${this.selectedOrder!.orderNumber}`);
-        this.closeAssignDealerModal();
+        this.isCreatingDistribution = false;
+        this.toastService.success('Reparto creado exitosamente');
+        this.closeCreateDistributionModal();
+        this.selectedOrders = [];
+        // Recargar los pedidos para reflejar que ahora tienen distributionId
+        this.loadOrders();
       },
       error: (error) => {
-        this.isAssigning = false;
-        this.toastService.error('Error al asignar repartidor');
+        this.isCreatingDistribution = false;
         console.error('Error creating distribution:', error);
+        this.toastService.error('Error al crear el reparto');
       }
     });
-  }
-
-  goToNuevoPedido(): void {
-    this.router.navigate(['/dashboard/pedidos/nuevo']);
   }
 }
