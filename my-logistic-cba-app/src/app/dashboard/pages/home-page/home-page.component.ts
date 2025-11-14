@@ -531,7 +531,7 @@ export class HomePageComponent implements OnInit {
         this.stats.totalOrders = orders.length;
         this.stats.pendingOrders = orders.filter(o => o.status === 'PENDING').length;
         this.stats.deliveredOrders = orders.filter(o => o.status === 'DELIVERED').length;
-        this.stats.inTransitOrders = orders.filter(o => o.status === 'IN_TRANSIT').length;
+        this.stats.inTransitOrders = orders.filter(o => o.status === 'SHIPPED').length;
 
         // Calculate revenue
         this.stats.totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
@@ -543,6 +543,9 @@ export class HomePageComponent implements OnInit {
           : 0;
 
         // Orders by status
+        const confirmedCount = orders.filter(o => o.status === 'CONFIRMED').length;
+        const cancelledCount = orders.filter(o => o.status === 'CANCELLED').length;
+
         this.ordersByStatus = [
           {
             label: 'Pendientes',
@@ -551,13 +554,13 @@ export class HomePageComponent implements OnInit {
             color: 'secondary'
           },
           {
-            label: 'En Proceso',
-            count: orders.filter(o => o.status === 'PROCESSING').length,
-            percentage: this.stats.totalOrders > 0 ? Math.round((orders.filter(o => o.status === 'PROCESSING').length / this.stats.totalOrders) * 100) : 0,
+            label: 'Confirmados',
+            count: confirmedCount,
+            percentage: this.stats.totalOrders > 0 ? Math.round((confirmedCount / this.stats.totalOrders) * 100) : 0,
             color: 'primary'
           },
           {
-            label: 'En Tránsito',
+            label: 'Enviados',
             count: this.stats.inTransitOrders,
             percentage: this.stats.totalOrders > 0 ? Math.round((this.stats.inTransitOrders / this.stats.totalOrders) * 100) : 0,
             color: 'warning'
@@ -570,8 +573,8 @@ export class HomePageComponent implements OnInit {
           },
           {
             label: 'Cancelados',
-            count: orders.filter(o => o.status === 'CANCELLED').length,
-            percentage: this.stats.totalOrders > 0 ? Math.round((orders.filter(o => o.status === 'CANCELLED').length / this.stats.totalOrders) * 100) : 0,
+            count: cancelledCount,
+            percentage: this.stats.totalOrders > 0 ? Math.round((cancelledCount / this.stats.totalOrders) * 100) : 0,
             color: 'danger'
           }
         ];

@@ -653,8 +653,32 @@ export class MapaPageComponent implements OnInit, OnDestroy {
     return colorMap[status] || 'secondary';
   }
 
-  formatDate(dateString: string): string {
-    const date = new Date(dateString);
+  formatDate(dateString: string | number): string {
+    if (!dateString) return '';
+
+    // Si es un número (timestamp en segundos), convertir a milisegundos
+    let timestamp: number;
+    if (typeof dateString === 'number') {
+      timestamp = dateString * 1000;
+    } else {
+      // Si es string, intentar parsearlo como número primero
+      const parsed = parseFloat(dateString);
+      if (!isNaN(parsed)) {
+        // Es un timestamp numérico en formato string
+        timestamp = parsed * 1000;
+      } else {
+        // Es una fecha en formato ISO string
+        timestamp = new Date(dateString).getTime();
+      }
+    }
+
+    const date = new Date(timestamp);
+
+    // Verificar si la fecha es válida
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+
     return date.toLocaleDateString('es-AR', {
       year: 'numeric',
       month: '2-digit',

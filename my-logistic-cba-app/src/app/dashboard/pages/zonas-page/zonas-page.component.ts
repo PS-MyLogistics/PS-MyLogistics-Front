@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { ZoneService } from '../../../services/zone.service';
 import { ToastService } from '../../../services/toast.service';
 import { ZoneResponse, ZoneRequest } from '../../../models/zone.model';
+import { TimestampPipe } from '../../../pipes/timestamp.pipe';
 
 @Component({
   selector: 'app-zonas-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TimestampPipe],
   template: `
     <div class="page-container">
       <!-- Header con botón -->
@@ -114,7 +115,7 @@ import { ZoneResponse, ZoneRequest } from '../../../models/zone.model';
                       {{ zona.isActive ? 'Activa' : 'Inactiva' }}
                     </span>
                   </td>
-                  <td>{{ zona.createdAt | date: 'dd/MM/yyyy' }}</td>
+                  <td>{{ zona.createdAt | timestamp: 'dd/MM/yyyy' }}</td>
                   <td>
                     <button
                       class="btn btn-sm btn-icon text-primary me-2"

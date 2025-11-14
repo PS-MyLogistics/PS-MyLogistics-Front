@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { VehicleService } from '../../../services/vehicle.service';
 import { ToastService } from '../../../services/toast.service';
 import { VehicleResponse, VehicleRequest } from '../../../models/vehicle.model';
+import { TimestampPipe } from '../../../pipes/timestamp.pipe';
 
 @Component({
   selector: 'app-vehiculos-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, TimestampPipe],
   template: `
     <div class="page-container">
       <!-- Header con botón -->
@@ -98,7 +99,7 @@ import { VehicleResponse, VehicleRequest } from '../../../models/vehicle.model';
                       {{ vehiculo.capacity }} unidades
                     </span>
                   </td>
-                  <td>{{ vehiculo.createdAt | date: 'dd/MM/yyyy' }}</td>
+                  <td>{{ vehiculo.createdAt | timestamp: 'dd/MM/yyyy' }}</td>
                   <td>
                     <button
                       class="btn btn-sm btn-icon text-primary me-2"
