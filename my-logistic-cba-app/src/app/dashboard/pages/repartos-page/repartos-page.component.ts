@@ -43,6 +43,14 @@ export class RepartosPageComponent implements OnInit {
   // Modal detalles
   showDetailsModal = false;
   selectedReparto: any = null;
+  selectedRepartoOrders: Order[] = [];
+
+  // Selección y acciones masivas
+  selectedRepartos: string[] = [];
+  showCancelRepartosModal = false;
+  showCompleteRepartosModal = false;
+  isCancellingRepartos = false;
+  isCompletingRepartos = false;
 
   ngOnInit(): void {
     this.isDealer = this.authService.hasRole(Role.DEALER);
@@ -157,9 +165,9 @@ export class RepartosPageComponent implements OnInit {
   getStatusLabel(status: string): string {
     const statusMap: { [key: string]: string } = {
       'PENDING': 'Pendiente',
-      'ASSIGNED': 'Asignado',
-      'IN_PROGRESS': 'En Progreso',
-      'COMPLETED': 'Completado',
+      'PLANNED': 'Asignado',
+      'IN_PROGRESS': 'Enviado',
+      'COMPLETED': 'Entregado',
       'CANCELLED': 'Cancelado'
     };
     return statusMap[status] || status;
@@ -168,7 +176,7 @@ export class RepartosPageComponent implements OnInit {
   getStatusColor(status: string): string {
     const colorMap: { [key: string]: string } = {
       'PENDING': 'secondary',
-      'ASSIGNED': 'info',
+      'PLANNED': 'info',
       'IN_PROGRESS': 'warning',
       'COMPLETED': 'success',
       'CANCELLED': 'danger'
@@ -238,11 +246,233 @@ export class RepartosPageComponent implements OnInit {
 
   verDetalle(reparto: any): void {
     this.selectedReparto = reparto;
+    // Cargar los detalles completos de los pedidos
+    this.selectedRepartoOrders = [];
+    if (reparto.orderIds && reparto.orderIds.length > 0) {
+      reparto.orderIds.forEach((orderId: string) => {
+        const order = this.orders.find(o => o.id === orderId);
+        if (order) {
+          this.selectedRepartoOrders.push(order);
+        }
+      });
+    }
     this.showDetailsModal = true;
   }
 
   closeDetailsModal(): void {
     this.showDetailsModal = false;
     this.selectedReparto = null;
+    this.selectedRepartoOrders = [];
+  }
+
+  // Métodos de selección
+  isRepartoSelected(repartoId: string): boolean {
+    return this.selectedRepartos.includes(repartoId);
+  }
+
+  toggleRepartoSelection(repartoId: string): void {
+    const index = this.selectedRepartos.indexOf(repartoId);
+    if (index > -1) {
+      this.selectedRepartos.splice(index, 1);
+    } else {
+      this.selectedRepartos.push(repartoId);
+    }
+  }
+
+  allSelectableRepartosSelected(): boolean {
+    const selectableRepartos = this.repartosFiltrados.filter(r => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
+    if (selectableRepartos.length === 0) return false;
+    return selectableRepartos.every(r => this.selectedRepartos.includes(r.id));
+  }
+
+  toggleSelectAll(): void {
+    const selectableRepartos = this.repartosFiltrados.filter(r => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
+    if (this.allSelectableRepartosSelected()) {
+      // Deseleccionar todos
+      selectableRepartos.forEach(r => {
+        const index = this.selectedRepartos.indexOf(r.id);
+        if (index > -1) {
+          this.selectedRepartos.splice(index, 1);
+        }
+      });
+    } else {
+      // Seleccionar todos
+      selectableRepartos.forEach(r => {
+        if (!this.selectedRepartos.includes(r.id)) {
+          this.selectedRepartos.push(r.id);
+        }
+      });
+    }
+  }
+
+  // Métodos de modales
+  openCancelRepartosModal(): void {
+    if (this.selectedRepartos.length === 0) {
+      this.toastService.error('Debes seleccionar al menos un reparto');
+      return;
+    }
+    this.showCancelRepartosModal = true;
+  }
+
+  closeCancelRepartosModal(): void {
+    this.showCancelRepartosModal = false;
+  }
+
+  openCompleteRepartosModal(): void {
+    if (this.selectedRepartos.length === 0) {
+      this.toastService.error('Debes seleccionar al menos un reparto');
+      return;
+    }
+    this.showCompleteRepartosModal = true;
+  }
+
+  closeCompleteRepartosModal(): void {
+    this.showCompleteRepartosModal = false;
+  }
+
+  // Cancelar repartos
+  cancelRepartos(): void {
+    if (this.selectedRepartos.length === 0) {
+      this.toastService.error('No hay repartos seleccionados');
+      return;
+    }
+
+    this.isCancellingRepartos = true;
+    let processedCount = 0;
+    const totalRepartos = this.selectedRepartos.length;
+
+    this.selectedRepartos.forEach(repartoId => {
+      const reparto = this.repartos.find(r => r.id === repartoId);
+      if (!reparto) {
+        processedCount++;
+        return;
+      }
+
+      // Cancelar el reparto
+      this.distributionService.updateDistributionStatus(repartoId, 'CANCELLED').subscribe({
+        next: () => {
+          // Cambiar todos los pedidos del reparto a PENDING
+          const orderIds = reparto.orderIds || [];
+          let ordersProcessed = 0;
+
+          if (orderIds.length === 0) {
+            processedCount++;
+            this.checkCancelCompletion(processedCount, totalRepartos);
+            return;
+          }
+
+          orderIds.forEach((orderId: string) => {
+            this.orderService.updateOrderStatus(orderId, 'PENDING').subscribe({
+              next: () => {
+                ordersProcessed++;
+                if (ordersProcessed === orderIds.length) {
+                  processedCount++;
+                  this.checkCancelCompletion(processedCount, totalRepartos);
+                }
+              },
+              error: (error) => {
+                console.error('Error updating order status:', orderId, error);
+                ordersProcessed++;
+                if (ordersProcessed === orderIds.length) {
+                  processedCount++;
+                  this.checkCancelCompletion(processedCount, totalRepartos);
+                }
+              }
+            });
+          });
+        },
+        error: (error) => {
+          console.error('Error cancelling distribution:', repartoId, error);
+          processedCount++;
+          this.checkCancelCompletion(processedCount, totalRepartos);
+        }
+      });
+    });
+  }
+
+  checkCancelCompletion(processedCount: number, totalRepartos: number): void {
+    if (processedCount === totalRepartos) {
+      this.isCancellingRepartos = false;
+      this.toastService.success(`${totalRepartos} reparto(s) cancelado(s) exitosamente`);
+      this.closeCancelRepartosModal();
+      this.selectedRepartos = [];
+      this.loadInitialData();
+    }
+  }
+
+  // Completar repartos
+  completeRepartos(): void {
+    if (this.selectedRepartos.length === 0) {
+      this.toastService.error('No hay repartos seleccionados');
+      return;
+    }
+
+    this.isCompletingRepartos = true;
+    let processedCount = 0;
+    const totalRepartos = this.selectedRepartos.length;
+
+    this.selectedRepartos.forEach(repartoId => {
+      const reparto = this.repartos.find(r => r.id === repartoId);
+      if (!reparto) {
+        processedCount++;
+        return;
+      }
+
+      // Completar el reparto
+      this.distributionService.updateDistributionStatus(repartoId, 'COMPLETED').subscribe({
+        next: () => {
+          // Cambiar todos los pedidos del reparto a DELIVERED
+          const orderIds = reparto.orderIds || [];
+          let ordersProcessed = 0;
+
+          if (orderIds.length === 0) {
+            processedCount++;
+            this.checkCompleteCompletion(processedCount, totalRepartos);
+            return;
+          }
+
+          orderIds.forEach((orderId: string) => {
+            this.orderService.updateOrderStatus(orderId, 'DELIVERED').subscribe({
+              next: () => {
+                ordersProcessed++;
+                if (ordersProcessed === orderIds.length) {
+                  processedCount++;
+                  this.checkCompleteCompletion(processedCount, totalRepartos);
+                }
+              },
+              error: (error) => {
+                console.error('Error updating order status:', orderId, error);
+                ordersProcessed++;
+                if (ordersProcessed === orderIds.length) {
+                  processedCount++;
+                  this.checkCompleteCompletion(processedCount, totalRepartos);
+                }
+              }
+            });
+          });
+        },
+        error: (error) => {
+          console.error('Error completing distribution:', repartoId, error);
+          processedCount++;
+          this.checkCompleteCompletion(processedCount, totalRepartos);
+        }
+      });
+    });
+  }
+
+  checkCompleteCompletion(processedCount: number, totalRepartos: number): void {
+    if (processedCount === totalRepartos) {
+      this.isCompletingRepartos = false;
+      this.toastService.success(`${totalRepartos} reparto(s) marcado(s) como entregado(s) exitosamente`);
+      this.closeCompleteRepartosModal();
+      this.selectedRepartos = [];
+      this.loadInitialData();
+    }
+  }
+
+  getRepartoIdentifier(repartoId: string): string {
+    const reparto = this.repartos.find(r => r.id === repartoId);
+    if (!reparto) return repartoId;
+    return `${reparto.dealerName} - ${reparto.orderCount} pedido(s)`;
   }
 }

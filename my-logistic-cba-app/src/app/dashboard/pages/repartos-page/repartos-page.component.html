@@ -5,6 +5,28 @@
       <h5 class="mb-1">Gestión de Repartos</h5>
       <p class="text-muted mb-0">Administra las distribuciones y asignaciones de pedidos</p>
     </div>
+    <div class="d-flex gap-2" *ngIf="!isDealer">
+      <button
+        class="btn btn-danger"
+        [disabled]="selectedRepartos.length === 0"
+        (click)="openCancelRepartosModal()"
+      >
+        <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        Cancelar Reparto{{ selectedRepartos.length > 0 ? ' (' + selectedRepartos.length + ')' : '' }}
+      </button>
+      <button
+        class="btn btn-success"
+        [disabled]="selectedRepartos.length === 0"
+        (click)="openCompleteRepartosModal()"
+      >
+        <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Reparto Entregado{{ selectedRepartos.length > 0 ? ' (' + selectedRepartos.length + ')' : '' }}
+      </button>
+    </div>
   </div>
 
   <!-- Filtros -->
@@ -34,9 +56,9 @@
           <select class="form-select" [(ngModel)]="filtroEstado" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
             <option value="">Todos los estados</option>
             <option value="PENDING">Pendiente</option>
-            <option value="ASSIGNED">Asignado</option>
-            <option value="IN_PROGRESS">En Progreso</option>
-            <option value="COMPLETED">Completado</option>
+            <option value="PLANNED">Asignado</option>
+            <option value="IN_PROGRESS">Enviado</option>
+            <option value="COMPLETED">Entregado</option>
             <option value="CANCELLED">Cancelado</option>
           </select>
         </div>
@@ -95,6 +117,15 @@
         <table class="table table-hover mb-0">
           <thead>
             <tr>
+              <th *ngIf="!isDealer" style="width: 40px;">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  [checked]="allSelectableRepartosSelected()"
+                  (change)="toggleSelectAll()"
+                  title="Seleccionar todos"
+                >
+              </th>
               <th>Fecha Creación</th>
               <th>Repartidor</th>
               <th>Pedidos</th>
@@ -106,6 +137,16 @@
           </thead>
           <tbody>
             <tr *ngFor="let reparto of repartosFiltrados">
+              <td *ngIf="!isDealer">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  [checked]="isRepartoSelected(reparto.id)"
+                  [disabled]="reparto.status === 'COMPLETED' || reparto.status === 'CANCELLED'"
+                  (change)="toggleRepartoSelection(reparto.id)"
+                  [title]="reparto.status === 'COMPLETED' || reparto.status === 'CANCELLED' ? 'No se pueden seleccionar repartos completados o cancelados' : 'Seleccionar reparto'"
+                >
+              </td>
               <td>{{ formatDate(reparto.createdAt) }}</td>
               <td>
                 <div>
@@ -211,10 +252,37 @@
           <!-- Pedidos Asignados -->
           <h6 class="section-title">Pedidos Asignados ({{ selectedReparto.orderCount }})</h6>
           <div class="mb-3">
-            <div class="list-group">
-              <div *ngFor="let orderNum of selectedReparto.orderNumbers" class="list-group-item">
-                <strong>#{{ orderNum }}</strong>
-              </div>
+            <div *ngIf="selectedRepartoOrders.length > 0" class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead>
+                  <tr>
+                    <th>Nº Pedido</th>
+                    <th>Cliente</th>
+                    <th>Dirección</th>
+                    <th>Estado</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let order of selectedRepartoOrders">
+                    <td><strong>#{{ order.orderNumber }}</strong></td>
+                    <td>{{ order.customerName }}</td>
+                    <td>{{ order.customerAddress }}</td>
+                    <td>
+                      <span [class]="'badge bg-' + (order.status === 'PENDING' ? 'secondary' :
+                                                     order.status === 'CONFIRMED' ? 'info' :
+                                                     order.status === 'SHIPPED' ? 'warning' :
+                                                     order.status === 'DELIVERED' ? 'success' : 'danger')">
+                        {{ order.status === 'PENDING' ? 'Pendiente' :
+                           order.status === 'CONFIRMED' ? 'Confirmado' :
+                           order.status === 'SHIPPED' ? 'Enviado' :
+                           order.status === 'DELIVERED' ? 'Entregado' : 'Cancelado' }}
+                      </span>
+                    </td>
+                    <td>${{ order.totalAmount.toFixed(2) }}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
             <div *ngIf="selectedReparto.orderCount === 0" class="alert alert-info mb-0">
               No hay pedidos asignados a este reparto
@@ -232,6 +300,100 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" (click)="closeDetailsModal()">
             Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cancelar Repartos -->
+  <div class="modal fade" [class.show]="showCancelRepartosModal" [style.display]="showCancelRepartosModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showCancelRepartosModal" (click)="closeCancelRepartosModal()"></div>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Cancelar Repartos</h5>
+          <button type="button" class="btn-close" (click)="closeCancelRepartosModal()" [disabled]="isCancellingRepartos"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <svg class="me-2" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            <strong>Atención:</strong> Esta acción cancelará {{ selectedRepartos.length }} reparto(s) seleccionado(s) y todos sus pedidos volverán a estado PENDIENTE.
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Repartos a cancelar:</label>
+            <ul class="list-group">
+              <li class="list-group-item" *ngFor="let repartoId of selectedRepartos">
+                {{ getRepartoIdentifier(repartoId) }}
+              </li>
+            </ul>
+          </div>
+          <p class="text-muted mb-0">¿Estás seguro de que deseas continuar?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeCancelRepartosModal()" [disabled]="isCancellingRepartos">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-danger" [disabled]="isCancellingRepartos" (click)="cancelRepartos()">
+            <span *ngIf="!isCancellingRepartos">
+              <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              Confirmar Cancelación
+            </span>
+            <span *ngIf="isCancellingRepartos">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              Cancelando...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Completar Repartos -->
+  <div class="modal fade" [class.show]="showCompleteRepartosModal" [style.display]="showCompleteRepartosModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showCompleteRepartosModal" (click)="closeCompleteRepartosModal()"></div>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Marcar Repartos como Entregados</h5>
+          <button type="button" class="btn-close" (click)="closeCompleteRepartosModal()" [disabled]="isCompletingRepartos"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-success">
+            <svg class="me-2" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            <strong>Confirmación:</strong> Esta acción marcará {{ selectedRepartos.length }} reparto(s) como ENTREGADO(S) y todos sus pedidos pasarán a estado ENTREGADO.
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Repartos a marcar como entregados:</label>
+            <ul class="list-group">
+              <li class="list-group-item" *ngFor="let repartoId of selectedRepartos">
+                {{ getRepartoIdentifier(repartoId) }}
+              </li>
+            </ul>
+          </div>
+          <p class="text-muted mb-0">¿Estás seguro de que deseas continuar?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeCompleteRepartosModal()" [disabled]="isCompletingRepartos">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-success" [disabled]="isCompletingRepartos" (click)="completeRepartos()">
+            <span *ngIf="!isCompletingRepartos">
+              <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Confirmar Entrega
+            </span>
+            <span *ngIf="isCompletingRepartos">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              Procesando...
+            </span>
           </button>
         </div>
       </div>

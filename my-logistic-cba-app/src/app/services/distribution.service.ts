@@ -45,4 +45,11 @@ export class DistributionService {
   optimizeRoutes(distributionId: string): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/optimization/routes/${distributionId}`, {});
   }
+
+  /**
+   * Update distribution status
+   */
+  updateDistributionStatus(distributionId: string, status: string): Observable<DistributionResponse> {
+    return this.http.put<DistributionResponse>(`${this.apiUrl}/distributions/${distributionId}/status`, { status });
+  }
 }
