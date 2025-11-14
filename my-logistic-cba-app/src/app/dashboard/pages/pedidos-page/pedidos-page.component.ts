@@ -29,14 +29,26 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
         </div>
         <div class="d-flex gap-2">
           <button
-            *ngIf="!isDealer && selectedOrders.length > 0"
+            *ngIf="!isDealer"
+            class="btn btn-danger"
+            [disabled]="selectedOrders.length === 0"
+            (click)="openCancelOrdersModal()"
+          >
+            <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Cancelar Pedidos{{ selectedOrders.length > 0 ? ' (' + selectedOrders.length + ')' : '' }}
+          </button>
+          <button
+            *ngIf="!isDealer"
             class="btn btn-success"
+            [disabled]="selectedOrders.length === 0"
             (click)="openCreateDistributionModal()"
           >
             <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            Crear Reparto ({{ selectedOrders.length }})
+            Crear Reparto{{ selectedOrders.length > 0 ? ' (' + selectedOrders.length + ')' : '' }}
           </button>
           <button *ngIf="!isDealer" class="btn btn-primary" (click)="goToNuevoPedido()">
             <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,8 +79,8 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
               <select class="form-select" [(ngModel)]="filtroEstado" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
                 <option value="">Todos los estados</option>
                 <option value="PENDING">Pendiente</option>
-                <option value="PROCESSING">Procesando</option>
-                <option value="IN_TRANSIT">En Tránsito</option>
+                <option value="CONFIRMED">Confirmado</option>
+                <option value="SHIPPED">Enviado</option>
                 <option value="DELIVERED">Entregado</option>
                 <option value="CANCELLED">Cancelado</option>
               </select>
@@ -158,13 +170,20 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                 <tr *ngFor="let pedido of pedidosFiltrados">
                   <td *ngIf="!isDealer">
                     <input
-                      *ngIf="!pedido.distributionId"
+                      *ngIf="!pedido.distributionId && pedido.status === 'PENDING'"
                       type="checkbox"
                       class="form-check-input"
                       [checked]="isOrderSelected(pedido.id)"
                       (change)="toggleOrderSelection(pedido.id)"
                       title="Seleccionar pedido"
                     >
+                    <span
+                      *ngIf="!pedido.distributionId && pedido.status !== 'PENDING'"
+                      class="text-muted"
+                      title="Solo se pueden asignar pedidos pendientes"
+                    >
+                      -
+                    </span>
                   </td>
                   <td><strong>#{{ pedido.orderNumber }}</strong></td>
                   <td>{{ formatDate(pedido.createdAt) }}</td>
@@ -273,6 +292,53 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                 <span *ngIf="isCreatingDistribution">
                   <span class="spinner-border spinner-border-sm me-2"></span>
                   Creando...
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Cancelar Pedidos -->
+      <div class="modal fade" [class.show]="showCancelOrdersModal" [style.display]="showCancelOrdersModal ? 'block' : 'none'" tabindex="-1">
+        <div class="modal-backdrop fade" [class.show]="showCancelOrdersModal" (click)="closeCancelOrdersModal()"></div>
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Cancelar Pedidos</h5>
+              <button type="button" class="btn-close" (click)="closeCancelOrdersModal()"></button>
+            </div>
+            <div class="modal-body">
+              <div class="alert alert-warning">
+                <svg class="me-2" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"></path>
+                </svg>
+                <strong>Atención:</strong> Esta acción cancelará los siguientes pedidos y no se podrá deshacer.
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Pedidos a cancelar:</label>
+                <ul class="list-group">
+                  <li class="list-group-item" *ngFor="let orderId of selectedOrders">
+                    Pedido #{{ getOrderNumber(orderId) }}
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" (click)="closeCancelOrdersModal()">
+                Cancelar
+              </button>
+              <button
+                type="button"
+                class="btn btn-danger"
+                [disabled]="isCancellingOrders"
+                (click)="cancelOrders()"
+              >
+                <span *ngIf="!isCancellingOrders">Confirmar Cancelación</span>
+                <span *ngIf="isCancellingOrders">
+                  <span class="spinner-border spinner-border-sm me-2"></span>
+                  Cancelando...
                 </span>
               </button>
             </div>
@@ -486,6 +552,27 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
       cursor: not-allowed;
     }
 
+    .btn-danger {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+    }
+
+    .btn-danger:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+
     .btn-secondary {
       background: #6b7280;
       border: none;
@@ -496,6 +583,22 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
 
     .btn-secondary:hover {
       background: #4b5563;
+    }
+
+    .alert-warning {
+      background-color: #fef3c7;
+      border-color: #fbbf24;
+      color: #92400e;
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .list-group-item {
+      border: 1px solid #e5e7eb;
+      padding: 12px 16px;
+      font-size: 14px;
     }
 
     .form-check-input {
@@ -719,7 +822,7 @@ export class PedidosPageComponent implements OnInit {
 
   // Filtros
   searchTerm: string = '';
-  filtroEstado: string = '';
+  filtroEstado: string = 'PENDING';
   filtroZona: string = '';
   filtroFechaDesde: string = '';
   filtroFechaHasta: string = '';
@@ -736,6 +839,10 @@ export class PedidosPageComponent implements OnInit {
   distributionStartDate: string = '';
   distributionEndDate: string = '';
   isCreatingDistribution = false;
+
+  // Cancelación de pedidos
+  showCancelOrdersModal = false;
+  isCancellingOrders = false;
 
   ngOnInit(): void {
     this.isDealer = this.authService.hasRole(Role.DEALER);
@@ -792,6 +899,7 @@ export class PedidosPageComponent implements OnInit {
       this.pedidos = orders;
       this.pedidosFiltrados = orders;
       this.isLoading = false;
+      this.applyFilters();
       return;
     }
 
@@ -815,8 +923,8 @@ export class PedidosPageComponent implements OnInit {
           if (processedCount === customerIds.length) {
             // Todos los clientes fueron procesados
             this.pedidos = orders;
-            this.pedidosFiltrados = orders;
             this.isLoading = false;
+            this.applyFilters();
           }
         },
         error: (error) => {
@@ -825,8 +933,8 @@ export class PedidosPageComponent implements OnInit {
           if (processedCount === customerIds.length) {
             // Todos los clientes fueron procesados (incluso con errores)
             this.pedidos = orders;
-            this.pedidosFiltrados = orders;
             this.isLoading = false;
+            this.applyFilters();
           }
         }
       });
@@ -871,8 +979,8 @@ export class PedidosPageComponent implements OnInit {
   getStatusLabel(status: string): string {
     const statusMap: { [key: string]: string } = {
       'PENDING': 'Pendiente',
-      'PROCESSING': 'Procesando',
-      'IN_TRANSIT': 'En Tránsito',
+      'CONFIRMED': 'Confirmado',
+      'SHIPPED': 'Enviado',
       'DELIVERED': 'Entregado',
       'CANCELLED': 'Cancelado'
     };
@@ -882,8 +990,8 @@ export class PedidosPageComponent implements OnInit {
   getStatusColor(status: string): string {
     const colorMap: { [key: string]: string } = {
       'PENDING': 'secondary',
-      'PROCESSING': 'primary',
-      'IN_TRANSIT': 'warning',
+      'CONFIRMED': 'primary',
+      'SHIPPED': 'warning',
       'DELIVERED': 'success',
       'CANCELLED': 'danger'
     };
@@ -958,7 +1066,7 @@ export class PedidosPageComponent implements OnInit {
   }
 
   allSelectableOrdersSelected(): boolean {
-    const selectableOrders = this.pedidosFiltrados.filter(p => !p.distributionId);
+    const selectableOrders = this.pedidosFiltrados.filter(p => !p.distributionId && p.status === 'PENDING');
     if (selectableOrders.length === 0) return false;
     return selectableOrders.every(p => this.selectedOrders.includes(p.id));
   }
@@ -968,7 +1076,7 @@ export class PedidosPageComponent implements OnInit {
   }
 
   toggleSelectAll(): void {
-    const selectableOrders = this.pedidosFiltrados.filter(p => !p.distributionId);
+    const selectableOrders = this.pedidosFiltrados.filter(p => !p.distributionId && p.status === 'PENDING');
     if (this.allSelectableOrdersSelected()) {
       // Deseleccionar todos los pedidos seleccionables de la vista actual
       selectableOrders.forEach(p => {
@@ -1006,6 +1114,63 @@ export class PedidosPageComponent implements OnInit {
     this.selectedDealerId = '';
     this.distributionStartDate = '';
     this.distributionEndDate = '';
+  }
+
+  // Métodos del modal de cancelar pedidos
+  openCancelOrdersModal(): void {
+    if (this.selectedOrders.length === 0) {
+      this.toastService.error('Debes seleccionar al menos un pedido');
+      return;
+    }
+    this.showCancelOrdersModal = true;
+  }
+
+  closeCancelOrdersModal(): void {
+    this.showCancelOrdersModal = false;
+  }
+
+  cancelOrders(): void {
+    if (this.selectedOrders.length === 0) {
+      this.toastService.error('No hay pedidos seleccionados');
+      return;
+    }
+
+    this.isCancellingOrders = true;
+
+    // Cancelar cada pedido
+    let cancelledCount = 0;
+    const totalOrders = this.selectedOrders.length;
+
+    this.selectedOrders.forEach(orderId => {
+      this.orderService.updateOrderStatus(orderId, 'CANCELLED').subscribe({
+        next: (response) => {
+          console.log('Order cancelled successfully:', orderId, response);
+          cancelledCount++;
+          if (cancelledCount === totalOrders) {
+            // Todos los pedidos fueron cancelados
+            this.isCancellingOrders = false;
+            this.toastService.success(`${totalOrders} pedido(s) cancelado(s) exitosamente`);
+            this.closeCancelOrdersModal();
+            this.selectedOrders = [];
+            // Recargar los pedidos
+            this.loadOrders();
+          }
+        },
+        error: (error) => {
+          console.error('Error cancelling order:', orderId, error);
+          console.error('Error details:', error.error);
+          cancelledCount++;
+          if (cancelledCount === totalOrders) {
+            // Todos los pedidos fueron procesados (aunque algunos con error)
+            this.isCancellingOrders = false;
+            this.toastService.warning('Algunos pedidos no pudieron ser cancelados');
+            this.closeCancelOrdersModal();
+            this.selectedOrders = [];
+            this.loadOrders();
+          }
+        }
+      });
+    });
   }
 
   createDistribution(): void {
@@ -1046,11 +1211,12 @@ export class PedidosPageComponent implements OnInit {
 
     this.distributionService.createDistribution(distributionRequest).subscribe({
       next: (distribution) => {
+        // El backend actualiza automáticamente el estado de los pedidos a CONFIRMED
         this.isCreatingDistribution = false;
         this.toastService.success('Reparto creado exitosamente');
         this.closeCreateDistributionModal();
         this.selectedOrders = [];
-        // Recargar los pedidos para reflejar que ahora tienen distributionId
+        // Recargar los pedidos para reflejar que ahora tienen distributionId y estado actualizado
         this.loadOrders();
       },
       error: (error) => {

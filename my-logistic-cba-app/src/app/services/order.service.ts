@@ -45,4 +45,11 @@ export class OrderService {
   assignDealer(orderId: string, dealerId: string, vehicleId?: string): Observable<Order> {
     return this.updateOrder(orderId, { dealerId, vehicleId });
   }
+
+  /**
+   * Update order status
+   */
+  updateOrderStatus(orderId: string, status: string): Observable<Order> {
+    return this.http.put<Order>(`${this.apiUrl}/orders/update/${orderId}`, { status });
+  }
 }
