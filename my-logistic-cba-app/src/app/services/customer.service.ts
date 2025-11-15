@@ -83,10 +83,7 @@ export class CustomerService {
           errorMessage = error.error?.message || 'Ya existe un cliente con esos datos.';
           break;
         case 500:
-          // Most 500 errors when creating/updating customers are geocoding errors
-          // Since the backend wraps the real error in a generic message,
-          // we'll show a helpful message about address validation
-          errorMessage = 'No se pudo validar la dirección ingresada. Por favor verifica que la dirección, ciudad, provincia y código postal sean correctos y correspondan a una ubicación real.';
+          errorMessage = error.error?.message || 'Error del servidor. Por favor intenta nuevamente.';
           break;
         default:
           errorMessage = error.error?.message || `Error del servidor: ${error.status}`;

@@ -127,8 +127,8 @@ interface ProductoEnPedido {
               <div class="col-md-6">
                 <label class="form-label-custom">Zona</label>
                 <select class="form-control-custom" [(ngModel)]="cliente.zoneId" [disabled]="useExistingCustomer">
-                  <option value="">Sin zona asignada</option>
-                  <option *ngFor="let zone of zones" [value]="zone.id">
+                  <option [ngValue]="undefined">Sin zona asignada</option>
+                  <option *ngFor="let zone of zones" [ngValue]="zone.id">
                     {{ zone.name }}
                   </option>
                 </select>
@@ -744,6 +744,13 @@ export class NuevoPedidoPageComponent implements OnInit {
       return;
     }
 
+    // Verificar si el producto ya está en la lista
+    const productoYaAgregado = this.productos.find(p => p.productId === this.productoSeleccionadoId);
+    if (productoYaAgregado) {
+      this.toastService.warning('Este producto ya fue agregado al pedido. Elimínelo primero si desea modificar la cantidad.');
+      return;
+    }
+
     const productoEncontrado = this.productosDisponibles.find(p => p.id === this.productoSeleccionadoId);
     if (!productoEncontrado) {
       this.toastService.error('Producto no encontrado');
@@ -788,8 +795,7 @@ export class NuevoPedidoPageComponent implements OnInit {
       this.cliente.postalCode &&
       this.cliente.city &&
       this.cliente.state &&
-      this.cliente.country &&
-      this.cliente.doorbell
+      this.cliente.country
     );
 
     // Validate at least one product
@@ -804,6 +810,22 @@ export class NuevoPedidoPageComponent implements OnInit {
       return;
     }
 
+    // Validación adicional de dirección completa para nuevos clientes
+    if (!this.useExistingCustomer) {
+      if (!this.cliente.address || this.cliente.address.trim().length < 5) {
+        this.toastService.warning('La dirección debe tener al menos 5 caracteres');
+        return;
+      }
+      if (!this.cliente.city || this.cliente.city.trim().length < 2) {
+        this.toastService.warning('El nombre de la ciudad es demasiado corto');
+        return;
+      }
+      if (!this.cliente.state || this.cliente.state.trim().length < 2) {
+        this.toastService.warning('El nombre de la provincia es demasiado corto');
+        return;
+      }
+    }
+
     this.isCreatingOrder = true;
 
     // Build order items
@@ -813,6 +835,11 @@ export class NuevoPedidoPageComponent implements OnInit {
       unitPrice: p.precioUnitario
     }));
 
+    // Build customer request with zoneId if selected
+    const customerRequest: CustomerCreationRequest = {
+      ...this.cliente
+    };
+
     // Build order request
     const orderRequest: OrderCreationRequest = this.useExistingCustomer && this.selectedCustomerId
       ? {
@@ -821,8 +848,14 @@ export class NuevoPedidoPageComponent implements OnInit {
         }
       : {
           items: items,
-          customerCreationRequest: this.cliente
+          customerCreationRequest: customerRequest
         };
+
+    // Debug: log what we're sending
+    console.log('Creando pedido con:', orderRequest);
+    if (!this.useExistingCustomer) {
+      console.log('Cliente nuevo - zoneId:', customerRequest.zoneId);
+    }
 
     this.orderService.createOrder(orderRequest).subscribe({
       next: (response) => {
@@ -838,6 +871,7 @@ export class NuevoPedidoPageComponent implements OnInit {
       },
       error: (error) => {
         this.isCreatingOrder = false;
+        // El mensaje de error ya viene formateado desde el servicio
         this.toastService.error(
           error.message || 'Error al crear el pedido. Por favor intente nuevamente.'
         );

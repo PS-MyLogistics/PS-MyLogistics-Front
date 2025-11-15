@@ -151,9 +151,9 @@
                   type="checkbox"
                   class="form-check-input"
                   [checked]="isRepartoSelected(reparto.id)"
-                  [disabled]="reparto.status === 'COMPLETED' || reparto.status === 'CANCELLED'"
+                  [disabled]="reparto.status === 'CANCELLED'"
                   (change)="toggleRepartoSelection(reparto.id)"
-                  [title]="reparto.status === 'COMPLETED' || reparto.status === 'CANCELLED' ? 'No se pueden seleccionar repartos completados o cancelados' : 'Seleccionar reparto'"
+                  [title]="reparto.status === 'CANCELLED' ? 'No se pueden seleccionar repartos cancelados' : 'Seleccionar reparto'"
                 >
               </td>
               <td>{{ formatDate(reparto.createdAt) }}</td>

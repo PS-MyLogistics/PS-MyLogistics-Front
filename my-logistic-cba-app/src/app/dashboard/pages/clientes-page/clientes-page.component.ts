@@ -235,8 +235,34 @@ export class ClientesPageComponent implements OnInit {
       doorbell: originalCustomer.doorbell,
       notes: originalCustomer.notes || '',
       type: originalCustomer.type || '',
-      isActive: originalCustomer.isActive
+      isActive: originalCustomer.isActive !== undefined ? originalCustomer.isActive : true,
+      zoneId: originalCustomer.zoneId
     };
+  }
+
+  // Action methods for customer
+  openWhatsApp(cliente: any): void {
+    if (cliente.telefono) {
+      const message = `Hola! Soy el administrador de MyLogistics CBA.`;
+      const phoneNumber = cliente.telefono.replace(/\D/g, '');
+      window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
+    } else {
+      this.toastService.warning('El cliente no tiene número de teléfono registrado');
+    }
+  }
+
+  callPhone(cliente: any): void {
+    if (cliente.telefono) {
+      window.location.href = `tel:${cliente.telefono}`;
+    } else {
+      this.toastService.warning('El cliente no tiene número de teléfono registrado');
+    }
+  }
+
+  openGoogleMaps(cliente: any): void {
+    const fullAddress = `${cliente.direccion}, ${cliente.ciudad}, ${cliente.provincia}, ${cliente.pais}`;
+    const encodedAddress = encodeURIComponent(fullAddress);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');
   }
 
   closeEditCustomerModal(): void {

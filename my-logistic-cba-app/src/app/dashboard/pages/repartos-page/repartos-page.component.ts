@@ -127,7 +127,7 @@ export class RepartosPageComponent implements OnInit {
           };
         });
 
-        this.repartosFiltrados = this.repartos;
+        this.applyFilters();
         this.isLoading = false;
       },
       error: (error) => {
@@ -326,13 +326,13 @@ export class RepartosPageComponent implements OnInit {
   }
 
   allSelectableRepartosSelected(): boolean {
-    const selectableRepartos = this.repartosFiltrados.filter(r => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
+    const selectableRepartos = this.repartosFiltrados.filter(r => r.status !== 'CANCELLED');
     if (selectableRepartos.length === 0) return false;
     return selectableRepartos.every(r => this.selectedRepartos.includes(r.id));
   }
 
   toggleSelectAll(): void {
-    const selectableRepartos = this.repartosFiltrados.filter(r => r.status !== 'COMPLETED' && r.status !== 'CANCELLED');
+    const selectableRepartos = this.repartosFiltrados.filter(r => r.status !== 'CANCELLED');
     if (this.allSelectableRepartosSelected()) {
       // Deseleccionar todos
       selectableRepartos.forEach(r => {
