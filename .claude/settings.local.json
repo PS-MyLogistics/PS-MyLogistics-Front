@@ -6,7 +6,8 @@
       "Bash(dir:*)",
       "Bash(npm start)",
       "Bash(npm install:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []

@@ -36,7 +36,7 @@ export class RepartosPageComponent implements OnInit {
   // Filtros
   searchTerm: string = '';
   filtroDealer: string = '';
-  filtroEstado: string = '';
+  filtroEstado: string = 'PLANNED';
   filtroFechaDesde: string = '';
   filtroFechaHasta: string = '';
 

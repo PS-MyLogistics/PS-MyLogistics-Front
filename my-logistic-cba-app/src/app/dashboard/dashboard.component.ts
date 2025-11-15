@@ -15,87 +15,110 @@ import { Role } from '../models/user.model';
       <!-- Sidebar -->
       <aside class="sidebar" [class.sidebar-open]="sidebarOpen">
         <div class="sidebar-header">
-          <div class="logo-sidebar">
-            <svg class="logo-icon-sidebar" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"></path>
-            </svg>
+          <div class="logo-container">
+            <img src="logo.png" alt="My Logistic" class="logo-img" />
           </div>
-          <h5 class="sidebar-title">My Logistic</h5>
         </div>
 
         <nav class="sidebar-nav">
-          <a [routerLink]="['/dashboard']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item">
+          <!-- Inicio -->
+          <a [routerLink]="['/dashboard']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-item" (click)="closeSidebar()">
             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
             </svg>
             <span>Inicio</span>
           </a>
 
-          <a [routerLink]="['/dashboard/pedidos']" routerLinkActive="active" class="nav-item">
-            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-            </svg>
-            <span>Pedidos</span>
-          </a>
+          <!-- Pedidos (con submenu) -->
+          <div class="nav-group">
+            <button class="nav-item nav-item-toggle" (click)="togglePedidosMenu()">
+              <div class="nav-item-content">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+                <span>Pedidos</span>
+              </div>
+              <svg class="chevron-icon" [class.rotated]="pedidosMenuOpen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div class="submenu" [class.submenu-open]="pedidosMenuOpen">
+              <a [routerLink]="['/dashboard/pedidos']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+                <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                </svg>
+                <span>Gestión de Pedidos</span>
+              </a>
+              <a [routerLink]="['/dashboard/clientes']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+                <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                <span>Clientes</span>
+              </a>
+              <a *ngIf="!isDealer()" [routerLink]="['/dashboard/zonas']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+                <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
+                </svg>
+                <span>Zonas</span>
+              </a>
+              <a *ngIf="!isDealer()" [routerLink]="['/dashboard/productos']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+                <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                </svg>
+                <span>Productos</span>
+              </a>
+            </div>
+          </div>
 
-          <a *ngIf="!isDealer()" [routerLink]="['/dashboard/repartos']" routerLinkActive="active" class="nav-item">
-            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            <span>Repartos</span>
-          </a>
+          <!-- Repartos (con submenu) -->
+          <div class="nav-group" *ngIf="!isDealer()">
+            <button class="nav-item nav-item-toggle" (click)="toggleRepartosMenu()">
+              <div class="nav-item-content">
+                <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span>Repartos</span>
+              </div>
+              <svg class="chevron-icon" [class.rotated]="repartosMenuOpen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </button>
+            <div class="submenu" [class.submenu-open]="repartosMenuOpen">
+              <a [routerLink]="['/dashboard/repartos']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+                <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span>Gestión de Repartos</span>
+              </a>
+              <a [routerLink]="['/dashboard/usuarios']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+                <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span>Usuarios</span>
+              </a>
+              <a [routerLink]="['/dashboard/vehiculos']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+                <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0h-.01M15 17a2 2 0 104 0m-4 0h-.01M9 17h6"></path>
+                </svg>
+                <span>Vehículos</span>
+              </a>
+              <a [routerLink]="['/dashboard/mapa']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+                <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span>Mapa</span>
+              </a>
+            </div>
+          </div>
 
-          <a [routerLink]="['/dashboard/clientes']" routerLinkActive="active" class="nav-item">
+          <!-- Plan -->
+          <a href="#" class="nav-item" (click)="closeSidebar()">
             <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
             </svg>
-            <span>Clientes</span>
-          </a>
-
-          <a *ngIf="!isDealer()" [routerLink]="['/dashboard/zonas']" routerLinkActive="active" class="nav-item">
-            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-            </svg>
-            <span>Zonas</span>
-          </a>
-
-          <a *ngIf="!isDealer()" [routerLink]="['/dashboard/productos']" routerLinkActive="active" class="nav-item">
-            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8.01-4.1a2 2 0 00-1.98 0L2 7v10a2 2 0 002 2h16a2 2 0 002-2V7zM12 2v10m0 0L6 8m6 4l6-4"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M3 7l9-5 9 5M5 10h14"></path>
-            </svg>
-            <span>Productos</span>
-          </a>
-
-          <a *ngIf="!isDealer()" [routerLink]="['/dashboard/usuarios']" routerLinkActive="active" class="nav-item">
-            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-            </svg>
-            <span>Usuarios</span>
-          </a>
-
-          <a *ngIf="!isDealer()" [routerLink]="['/dashboard/vehiculos']" routerLinkActive="active" class="nav-item">
-            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0h-.01M15 17a2 2 0 104 0m-4 0h-.01M9 17h6"></path>
-            </svg>
-            <span>Vehículos</span>
-          </a>
-
-          <a [routerLink]="['/dashboard/mapa']" routerLinkActive="active" class="nav-item">
-            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-            </svg>
-            <span>Mapa</span>
-          </a>
-
-          <a href="#" class="nav-item">
-            <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-            </svg>
-            <span>Configuración</span>
+            <span>Plan</span>
           </a>
         </nav>
 
@@ -108,6 +131,9 @@ import { Role } from '../models/user.model';
           </button>
         </div>
       </aside>
+
+      <!-- Overlay for mobile -->
+      <div class="sidebar-overlay" [class.show]="sidebarOpen" (click)="closeSidebar()"></div>
 
       <!-- Main Content -->
       <div class="main-content">
@@ -204,6 +230,19 @@ import { Role } from '../models/user.model';
     }
 
     /* Sidebar */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
     .sidebar {
       width: 260px;
       background: white;
@@ -219,41 +258,36 @@ import { Role } from '../models/user.model';
     }
 
     .sidebar-header {
-      padding: 24px 20px;
+      padding: 20px;
       border-bottom: 1px solid #e5e7eb;
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
     }
 
-    .logo-sidebar {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-      border-radius: 10px;
+    .logo-container {
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
     }
 
-    .logo-icon-sidebar {
-      width: 24px;
-      height: 24px;
-      color: white;
-    }
-
-    .sidebar-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #1f2937;
-      margin: 0;
+    .logo-img {
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .sidebar-nav {
       flex: 1;
       padding: 20px 12px;
       overflow-y: auto;
+    }
+
+    .nav-group {
+      margin-bottom: 4px;
     }
 
     .nav-item {
@@ -267,6 +301,22 @@ import { Role } from '../models/user.model';
       margin-bottom: 4px;
       transition: all 0.2s;
       font-weight: 500;
+      width: 100%;
+      border: none;
+      background: none;
+      cursor: pointer;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .nav-item-toggle {
+      justify-content: space-between;
+    }
+
+    .nav-item-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     .nav-item:hover {
@@ -282,6 +332,58 @@ import { Role } from '../models/user.model';
     .nav-icon {
       width: 20px;
       height: 20px;
+      flex-shrink: 0;
+    }
+
+    .chevron-icon {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      transition: transform 0.3s ease;
+    }
+
+    .chevron-icon.rotated {
+      transform: rotate(180deg);
+    }
+
+    .submenu {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      padding-left: 32px;
+    }
+
+    .submenu.submenu-open {
+      max-height: 300px;
+    }
+
+    .submenu-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      color: #6b7280;
+      text-decoration: none;
+      border-radius: 6px;
+      margin-bottom: 2px;
+      transition: all 0.2s;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .submenu-item:hover {
+      background: #f3f4f6;
+      color: #2563eb;
+    }
+
+    .submenu-item.active {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+
+    .submenu-icon {
+      width: 16px;
+      height: 16px;
       flex-shrink: 0;
     }
 
@@ -585,6 +687,11 @@ import { Role } from '../models/user.model';
 
     /* Mobile */
     @media (max-width: 768px) {
+      .sidebar-overlay.show {
+        display: block;
+        opacity: 1;
+      }
+
       .sidebar {
         transform: translateX(-100%);
       }
@@ -613,6 +720,8 @@ export class DashboardComponent implements OnInit {
   sidebarOpen: boolean = false;
   currentPageTitle: string = 'Inicio';
   showLogoutModal: boolean = false;
+  pedidosMenuOpen: boolean = false;
+  repartosMenuOpen: boolean = false;
 
   constructor(
     private router: Router,
@@ -641,7 +750,9 @@ export class DashboardComponent implements OnInit {
   updatePageTitle(): void {
     const url = this.router.url;
     if (url.includes('pedidos')) {
-      this.currentPageTitle = 'Pedidos';
+      this.currentPageTitle = 'Gestión de Pedidos';
+    } else if (url.includes('repartos')) {
+      this.currentPageTitle = 'Gestión de Repartos';
     } else if (url.includes('clientes')) {
       this.currentPageTitle = 'Clientes';
     } else if (url.includes('zonas')) {
@@ -654,6 +765,8 @@ export class DashboardComponent implements OnInit {
       this.currentPageTitle = 'Vehículos';
     } else if (url.includes('mapa')) {
       this.currentPageTitle = 'Mapa';
+    } else if (url.includes('plan')) {
+      this.currentPageTitle = 'Plan';
     } else {
       this.currentPageTitle = 'Inicio';
     }
@@ -661,6 +774,18 @@ export class DashboardComponent implements OnInit {
 
   toggleSidebar(): void {
     this.sidebarOpen = !this.sidebarOpen;
+  }
+
+  closeSidebar(): void {
+    this.sidebarOpen = false;
+  }
+
+  togglePedidosMenu(): void {
+    this.pedidosMenuOpen = !this.pedidosMenuOpen;
+  }
+
+  toggleRepartosMenu(): void {
+    this.repartosMenuOpen = !this.repartosMenuOpen;
   }
 
   getInitials(): string {

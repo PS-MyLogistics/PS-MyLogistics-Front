@@ -65,7 +65,6 @@
           <label class="form-label">Estado</label>
           <select class="form-select" [(ngModel)]="filtroEstado" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
             <option value="">Todos los estados</option>
-            <option value="PENDING">Pendiente</option>
             <option value="PLANNED">Asignado</option>
             <option value="IN_PROGRESS">Enviado</option>
             <option value="COMPLETED">Entregado</option>

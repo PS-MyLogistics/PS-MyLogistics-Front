@@ -1,5 +1,6 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { OrderService } from '../../../services/order.service';
 import { CustomerService } from '../../../services/customer.service';
 import { UserService } from '../../../services/user.service';
@@ -10,13 +11,42 @@ import { Role } from '../../../models/user.model';
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="page-container">
       <!-- Welcome Header -->
       <div class="welcome-header mb-4">
-        <h4 class="mb-2">Bienvenido, {{ currentUsername || 'Usuario' }}</h4>
-        <p class="text-muted mb-0">Aquí tienes un resumen de tus operaciones logísticas</p>
+        <div>
+          <h4 class="mb-2">Bienvenido, {{ currentUsername || 'Usuario' }}</h4>
+          <p class="text-muted mb-0">Aquí tienes un resumen de tus operaciones logísticas</p>
+        </div>
+
+        <!-- Filtros de Fecha -->
+        <div class="date-filters">
+          <div class="filter-group">
+            <label class="filter-label">Mes</label>
+            <select class="form-select" [(ngModel)]="selectedMonth" (ngModelChange)="onFilterChange()">
+              <option [value]="0">Enero</option>
+              <option [value]="1">Febrero</option>
+              <option [value]="2">Marzo</option>
+              <option [value]="3">Abril</option>
+              <option [value]="4">Mayo</option>
+              <option [value]="5">Junio</option>
+              <option [value]="6">Julio</option>
+              <option [value]="7">Agosto</option>
+              <option [value]="8">Septiembre</option>
+              <option [value]="9">Octubre</option>
+              <option [value]="10">Noviembre</option>
+              <option [value]="11">Diciembre</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label class="filter-label">Año</label>
+            <select class="form-select" [(ngModel)]="selectedYear" (ngModelChange)="onFilterChange()">
+              <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       <!-- Loading State -->
@@ -198,9 +228,59 @@ import { Role } from '../../../models/user.model';
       max-width: 1400px;
     }
 
+    .welcome-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
     .welcome-header h4 {
       font-weight: 700;
       color: #1f2937;
+    }
+
+    .date-filters {
+      display: flex;
+      gap: 12px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .filter-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      margin: 0;
+    }
+
+    .form-select {
+      padding: 8px 32px 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      background-color: white;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 16px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .form-select:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .form-select:hover {
+      border-color: #9ca3af;
     }
 
     .stat-card {
@@ -431,6 +511,26 @@ import { Role } from '../../../models/user.model';
       white-space: nowrap;
       border-width: 0;
     }
+
+    @media (max-width: 768px) {
+      .welcome-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .date-filters {
+        width: 100%;
+        flex-direction: column;
+      }
+
+      .filter-group {
+        width: 100%;
+      }
+
+      .form-select {
+        width: 100%;
+      }
+    }
   `]
 })
 export class HomePageComponent implements OnInit {
@@ -444,6 +544,11 @@ export class HomePageComponent implements OnInit {
   currentUsername: string | null = null;
   isDealer = false;
   currentUserId: string | null = null;
+
+  // Filtros de fecha
+  selectedMonth: number = new Date().getMonth();
+  selectedYear: number = new Date().getFullYear();
+  availableYears: number[] = [];
 
   stats = {
     totalOrders: 0,
@@ -463,7 +568,51 @@ export class HomePageComponent implements OnInit {
   ngOnInit(): void {
     this.currentUsername = this.authService.getCurrentUsername();
     this.isDealer = this.authService.hasRole(Role.DEALER);
+    this.initializeAvailableYears();
     this.loadCurrentUserId();
+  }
+
+  initializeAvailableYears(): void {
+    // Generar años desde 2025 hasta 2030
+    for (let year = 2025; year <= 2030; year++) {
+      this.availableYears.push(year);
+    }
+  }
+
+  onFilterChange(): void {
+    this.loadStatistics();
+  }
+
+  filterOrdersByDate(orders: any[]): any[] {
+    // Asegurar que los valores del filtro sean números
+    const filterMonth = Number(this.selectedMonth);
+    const filterYear = Number(this.selectedYear);
+
+    return orders.filter(order => {
+      let orderDate: Date;
+
+      // Manejar timestamp numérico o string
+      if (typeof order.createdAt === 'number') {
+        // Si es timestamp en segundos, convertir a milisegundos
+        orderDate = new Date(order.createdAt * 1000);
+      } else if (typeof order.createdAt === 'string') {
+        const parsed = parseFloat(order.createdAt);
+        if (!isNaN(parsed)) {
+          // Es un timestamp numérico en formato string
+          orderDate = new Date(parsed * 1000);
+        } else {
+          // Es una fecha en formato ISO string
+          orderDate = new Date(order.createdAt);
+        }
+      } else {
+        return false;
+      }
+
+      const orderMonth = orderDate.getMonth();
+      const orderYear = orderDate.getFullYear();
+
+      return orderMonth === filterMonth && orderYear === filterYear;
+    });
   }
 
   loadCurrentUserId(): void {
@@ -487,6 +636,21 @@ export class HomePageComponent implements OnInit {
 
   loadStatistics(): void {
     this.isLoading = true;
+
+    // Reset stats to ensure clean state
+    this.stats = {
+      totalOrders: 0,
+      pendingOrders: 0,
+      deliveredOrders: 0,
+      inTransitOrders: 0,
+      totalCustomers: 0,
+      totalUsers: 0,
+      totalDistributions: 0,
+      totalRevenue: 0,
+      averageOrderValue: 0
+    };
+    this.ordersByStatus = [];
+    this.deliveryRate = 0;
 
     // Si es dealer, primero cargar las distribuciones para filtrar sus pedidos
     if (this.isDealer && this.currentUserId) {
@@ -524,9 +688,12 @@ export class HomePageComponent implements OnInit {
     this.orderService.getAll().subscribe({
       next: (allOrders) => {
         // Filtrar pedidos si es dealer
-        const orders = dealerOrderIds !== null
+        let orders = dealerOrderIds !== null
           ? allOrders.filter(o => dealerOrderIds.has(o.id))
           : allOrders;
+
+        // Aplicar filtro de fecha (mes y año)
+        orders = this.filterOrdersByDate(orders);
 
         this.stats.totalOrders = orders.length;
         this.stats.pendingOrders = orders.filter(o => o.status === 'PENDING').length;
@@ -595,31 +762,53 @@ export class HomePageComponent implements OnInit {
       return;
     }
 
+    // Contador para rastrear cuántas llamadas se han completado
+    let completedCalls = 0;
+    const totalCalls = 3;
+
+    const checkAllCallsCompleted = () => {
+      completedCalls++;
+      if (completedCalls === totalCalls) {
+        this.isLoading = false;
+      }
+    };
+
     // Load customers
     this.customerService.getAll().subscribe({
       next: (customers) => {
         this.stats.totalCustomers = customers.length;
+        checkAllCallsCompleted();
       },
-      error: (error) => console.error('Error loading customers:', error)
+      error: (error) => {
+        console.error('Error loading customers:', error);
+        this.stats.totalCustomers = 0;
+        checkAllCallsCompleted();
+      }
     });
 
     // Load users
     this.userService.getAll().subscribe({
       next: (users) => {
         this.stats.totalUsers = users.length;
+        checkAllCallsCompleted();
       },
-      error: (error) => console.error('Error loading users:', error)
+      error: (error) => {
+        console.error('Error loading users:', error);
+        this.stats.totalUsers = 0;
+        checkAllCallsCompleted();
+      }
     });
 
     // Load distributions
     this.distributionService.getAllDistributions().subscribe({
       next: (distributions) => {
         this.stats.totalDistributions = distributions.length;
-        this.isLoading = false;
+        checkAllCallsCompleted();
       },
       error: (error) => {
         console.error('Error loading distributions:', error);
-        this.isLoading = false;
+        this.stats.totalDistributions = 0;
+        checkAllCallsCompleted();
       }
     });
   }

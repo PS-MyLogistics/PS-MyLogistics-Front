@@ -26,6 +26,72 @@ import { UserDto } from '../../../models/user.model';
         </div>
       </div>
 
+      <!-- Filtros -->
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center" style="cursor: pointer; background: white; padding: 12px 20px;" (click)="filtrosExpanded = !filtrosExpanded">
+          <div class="d-flex align-items-center gap-2">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+            </svg>
+            <span style="font-weight: 600; font-size: 14px;">Filtros</span>
+            <span class="badge bg-primary" *ngIf="filtroEstado || filtroDealer || filtroFechaDesde || filtroFechaHasta">
+              {{ getActiveFiltersCount() }}
+            </span>
+          </div>
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" [style.transform]="filtrosExpanded ? 'rotate(180deg)' : 'rotate(0deg)'" style="transition: transform 0.3s ease;">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+          </svg>
+        </div>
+        <div class="card-body" *ngIf="filtrosExpanded" style="padding-top: 16px;">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Estado</label>
+              <select class="form-select" [(ngModel)]="filtroEstado" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
+                <option value="">Todos los estados</option>
+                <option value="PLANNED">Asignado</option>
+                <option value="IN_PROGRESS">Enviado</option>
+                <option value="COMPLETED">Entregado</option>
+                <option value="CANCELLED">Cancelado</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Repartidor</label>
+              <select class="form-select" [(ngModel)]="filtroDealer" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
+                <option value="">Todos</option>
+                <option *ngFor="let dealer of dealers" [value]="dealer.id">{{ dealer.username }}</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Desde</label>
+              <input
+                type="date"
+                class="form-control"
+                [(ngModel)]="filtroFechaDesde"
+                [ngModelOptions]="{standalone: true}"
+                (ngModelChange)="applyFilters()"
+              >
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Hasta</label>
+              <input
+                type="date"
+                class="form-control"
+                [(ngModel)]="filtroFechaHasta"
+                [ngModelOptions]="{standalone: true}"
+                (ngModelChange)="applyFilters()"
+              >
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-secondary w-100" (click)="limpiarFiltros()" title="Limpiar filtros">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Selector de Reparto -->
       <div class="card mb-3">
         <div class="card-body">
@@ -39,7 +105,7 @@ import { UserDto } from '../../../models/user.model';
                 [disabled]="isLoading"
               >
                 <option value="">-- Selecciona un reparto --</option>
-                <option *ngFor="let dist of distributions" [value]="dist.id">
+                <option *ngFor="let dist of filteredDistributions" [value]="dist.id">
                   {{ dist.dealerName }} - {{ dist.orderCount }} pedido(s) - {{ formatDate(dist.createdAt) }}
                 </option>
               </select>
@@ -101,11 +167,10 @@ import { UserDto } from '../../../models/user.model';
               <div
                 class="delivery-item"
                 *ngFor="let location of orderLocations; let i = index"
-                (click)="focusOnMarker(i)"
                 [class.active]="selectedMarkerIndex === i"
               >
-                <div class="delivery-number">{{ i + 1 }}</div>
-                <div class="delivery-info">
+                <div class="delivery-number" (click)="focusOnMarker(i)">{{ i + 1 }}</div>
+                <div class="delivery-info" (click)="focusOnMarker(i)">
                   <div class="d-flex justify-content-between align-items-start mb-2">
                     <h6 class="mb-0">#{{ location.orderNumber }}</h6>
                     <span class="badge bg-primary">{{ location.customerName }}</span>
@@ -117,9 +182,33 @@ import { UserDto } from '../../../models/user.model';
                     </svg>
                     {{ location.address }}
                   </p>
-                  <div class="d-flex justify-content-between align-items-center">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
                     <small class="text-muted">{{ location.city }}</small>
                     <small class="text-primary fw-semibold">\${{ location.total | number:'1.2-2' }}</small>
+                  </div>
+                  <!-- Botones de acción -->
+                  <div class="action-buttons" (click)="$event.stopPropagation()">
+                    <button class="btn-icon" (click)="openOrderDetail(location)" title="Ver detalle">
+                      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                      </svg>
+                    </button>
+                    <button class="btn-icon btn-success" (click)="openWhatsApp(location)" title="WhatsApp">
+                      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"></path>
+                      </svg>
+                    </button>
+                    <button class="btn-icon btn-warning" (click)="callPhone(location)" title="Llamar">
+                      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                      </svg>
+                    </button>
+                    <button class="btn-icon btn-info" (click)="openGoogleMaps(location)" title="Google Maps">
+                      <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0C7.31 0 3.5 3.81 3.5 8.5c0 6.61 7.75 14.43 8.05 14.76a.5.5 0 00.71 0c.31-.33 8.24-8.15 8.24-14.76C20.5 3.81 16.69 0 12 0zm0 13a4 4 0 110-8 4 4 0 010 8z"></path>
+                      </svg>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -148,6 +237,79 @@ import { UserDto } from '../../../models/user.model';
         </svg>
         <h6>Selecciona un reparto para ver en el mapa</h6>
         <p class="text-muted">Elige un reparto del listado desplegable para visualizar las ubicaciones de los pedidos</p>
+      </div>
+
+      <!-- Modal de detalle del pedido -->
+      <div class="modal" [class.show]="showOrderDetailModal" *ngIf="showOrderDetailModal" (click)="closeOrderDetail()">
+        <div class="modal-dialog" (click)="$event.stopPropagation()">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Detalle del Pedido #{{ selectedOrderDetail?.orderNumber }}</h5>
+              <button type="button" class="btn-close" (click)="closeOrderDetail()">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <h6 class="mb-2">Cliente</h6>
+                <p class="mb-1"><strong>{{ selectedOrderDetail?.customerName }}</strong></p>
+                <p class="mb-1 text-muted small">{{ selectedOrderDetail?.address }}</p>
+                <p class="mb-0 text-muted small">{{ selectedOrderDetail?.city }}</p>
+              </div>
+              <div class="mb-3">
+                <h6 class="mb-2">Productos</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th class="text-end">Precio</th>
+                        <th class="text-end">Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of selectedOrderDetail?.order?.items">
+                        <td>{{ item.productName }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td class="text-end">\${{ item.price | number:'1.2-2' }}</td>
+                        <td class="text-end">\${{ (item.quantity * item.price) | number:'1.2-2' }}</td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                        <td class="text-end"><strong>\${{ selectedOrderDetail?.total | number:'1.2-2' }}</strong></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              </div>
+              <div class="d-grid gap-2">
+                <button class="btn btn-success" (click)="openWhatsApp(selectedOrderDetail)">
+                  <svg class="me-2" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L0 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"></path>
+                  </svg>
+                  Abrir WhatsApp
+                </button>
+                <button class="btn btn-warning" (click)="callPhone(selectedOrderDetail)">
+                  <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                  </svg>
+                  Llamar
+                </button>
+                <button class="btn btn-info" (click)="openGoogleMaps(selectedOrderDetail)">
+                  <svg class="me-2" width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0C7.31 0 3.5 3.81 3.5 8.5c0 6.61 7.75 14.43 8.05 14.76a.5.5 0 00.71 0c.31-.33 8.24-8.15 8.24-14.76C20.5 3.81 16.69 0 12 0zm0 13a4 4 0 110-8 4 4 0 010 8z"></path>
+                  </svg>
+                  Abrir en Google Maps
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   `,
@@ -221,7 +383,6 @@ import { UserDto } from '../../../models/user.model';
       border-bottom: 1px solid #f3f4f6;
       display: flex;
       gap: 12px;
-      cursor: pointer;
       transition: all 0.2s;
     }
 
@@ -232,6 +393,72 @@ import { UserDto } from '../../../models/user.model';
     .delivery-item.active {
       background: #eff6ff;
       border-left: 3px solid #2563eb;
+    }
+
+    .delivery-number {
+      cursor: pointer;
+    }
+
+    .delivery-info {
+      cursor: pointer;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .btn-icon {
+      padding: 6px 8px;
+      border: 1px solid #d1d5db;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #4b5563;
+    }
+
+    .btn-icon:hover {
+      background: #f3f4f6;
+      border-color: #9ca3af;
+    }
+
+    .btn-icon.btn-success {
+      background: #10b981;
+      border-color: #10b981;
+      color: white;
+    }
+
+    .btn-icon.btn-success:hover {
+      background: #059669;
+      border-color: #059669;
+    }
+
+    .btn-icon.btn-warning {
+      background: #f59e0b;
+      border-color: #f59e0b;
+      color: white;
+    }
+
+    .btn-icon.btn-warning:hover {
+      background: #d97706;
+      border-color: #d97706;
+    }
+
+    .btn-icon.btn-info {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: white;
+    }
+
+    .btn-icon.btn-info:hover {
+      background: #2563eb;
+      border-color: #2563eb;
     }
 
     .delivery-number {
@@ -306,6 +533,142 @@ import { UserDto } from '../../../models/user.model';
       border-width: 0;
     }
 
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-dialog {
+      max-width: 600px;
+      width: 100%;
+      margin: 20px;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .btn-close {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      color: #6b7280;
+      transition: color 0.2s;
+    }
+
+    .btn-close:hover {
+      color: #374151;
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .table {
+      width: 100%;
+      margin-bottom: 0;
+    }
+
+    .table th,
+    .table td {
+      padding: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .table thead th {
+      font-weight: 600;
+      color: #374151;
+      font-size: 13px;
+    }
+
+    .table tbody td {
+      font-size: 14px;
+    }
+
+    .table tfoot td {
+      border-top: 2px solid #d1d5db;
+      padding-top: 12px;
+    }
+
+    .d-grid {
+      display: grid;
+    }
+
+    .gap-2 {
+      gap: 8px;
+    }
+
+    .btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-warning {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .btn-warning:hover {
+      background: #d97706;
+    }
+
+    .btn-info {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-info:hover {
+      background: #2563eb;
+    }
+
     @media (max-width: 992px) {
       .delivery-list, .map-container {
         height: 400px;
@@ -332,12 +695,85 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   selectedMarkerIndex: number = -1;
   showMap = false;
 
+  // Filtros
+  filtroEstado: string = 'PLANNED';
+  filtroDealer: string = '';
+  filtroFechaDesde: string = '';
+  filtroFechaHasta: string = '';
+  filtrosExpanded: boolean = false;
+
+  // Modal de detalle de pedido
+  showOrderDetailModal: boolean = false;
+  selectedOrderDetail: any = null;
+
   private map: L.Map | null = null;
   private markers: L.Marker[] = [];
   private resizeObserver?: ResizeObserver;
 
   ngOnInit(): void {
     this.loadInitialData();
+  }
+
+  get filteredDistributions(): any[] {
+    return this.distributions.filter(dist => {
+      // Filtro por estado
+      const matchesStatus = !this.filtroEstado || dist.status === this.filtroEstado;
+
+      // Filtro por dealer
+      const matchesDealer = !this.filtroDealer || dist.dealerId === this.filtroDealer;
+
+      // Filtro por fecha desde
+      const matchesFechaDesde = !this.filtroFechaDesde ||
+        this.getDateFromTimestamp(dist.createdAt) >= new Date(this.filtroFechaDesde);
+
+      // Filtro por fecha hasta
+      const matchesFechaHasta = !this.filtroFechaHasta ||
+        this.getDateFromTimestamp(dist.createdAt) <= new Date(this.filtroFechaHasta + 'T23:59:59');
+
+      return matchesStatus && matchesDealer && matchesFechaDesde && matchesFechaHasta;
+    });
+  }
+
+  getDateFromTimestamp(dateString: string | number): Date {
+    if (typeof dateString === 'number') {
+      return new Date(dateString * 1000);
+    }
+    const parsed = parseFloat(dateString);
+    if (!isNaN(parsed)) {
+      return new Date(parsed * 1000);
+    }
+    return new Date(dateString);
+  }
+
+  applyFilters(): void {
+    // Resetear selección si la distribución actual no está en los filtrados
+    if (this.selectedDistributionId) {
+      const stillExists = this.filteredDistributions.find(d => d.id === this.selectedDistributionId);
+      if (!stillExists) {
+        this.selectedDistributionId = '';
+        this.selectedDistribution = null;
+        this.orderLocations = [];
+        this.destroyMap();
+        this.showMap = false;
+      }
+    }
+  }
+
+  limpiarFiltros(): void {
+    this.filtroEstado = '';
+    this.filtroDealer = '';
+    this.filtroFechaDesde = '';
+    this.filtroFechaHasta = '';
+    this.applyFilters();
+  }
+
+  getActiveFiltersCount(): number {
+    let count = 0;
+    if (this.filtroEstado) count++;
+    if (this.filtroDealer) count++;
+    if (this.filtroFechaDesde) count++;
+    if (this.filtroFechaHasta) count++;
+    return count;
   }
 
   ngOnDestroy(): void {
@@ -677,9 +1113,10 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   getStatusLabel(status: string): string {
     const statusMap: { [key: string]: string } = {
       'PENDING': 'Pendiente',
+      'PLANNED': 'Asignado',
       'ASSIGNED': 'Asignado',
-      'IN_PROGRESS': 'En Progreso',
-      'COMPLETED': 'Completado',
+      'IN_PROGRESS': 'Enviado',
+      'COMPLETED': 'Entregado',
       'CANCELLED': 'Cancelado'
     };
     return statusMap[status] || status;
@@ -688,6 +1125,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   getStatusColor(status: string): string {
     const colorMap: { [key: string]: string } = {
       'PENDING': 'secondary',
+      'PLANNED': 'info',
       'ASSIGNED': 'info',
       'IN_PROGRESS': 'warning',
       'COMPLETED': 'success',
@@ -730,5 +1168,69 @@ export class MapaPageComponent implements OnInit, OnDestroy {
       minute: '2-digit',
       second: '2-digit'
     });
+  }
+
+  // Métodos de acción
+  openOrderDetail(location: any): void {
+    // Buscar el pedido completo por orderId
+    const order = this.orders.find(o => o.id === location.orderId);
+    if (order) {
+      this.selectedOrderDetail = {
+        ...location,
+        order: order
+      };
+      this.showOrderDetailModal = true;
+    }
+  }
+
+  closeOrderDetail(): void {
+    this.showOrderDetailModal = false;
+    this.selectedOrderDetail = null;
+  }
+
+  openWhatsApp(location: any): void {
+    // Buscar el pedido completo para obtener el teléfono del cliente
+    const order = this.orders.find(o => o.id === location.orderId);
+    if (order) {
+      this.customerService.getById(order.customerId).subscribe({
+        next: (customer) => {
+          if (customer.phoneNumber) {
+            const message = `Hola! Soy del reparto. Tengo tu pedido #${location.orderNumber}. Dirección: ${location.address}, ${location.city}.`;
+            const phoneNumber = customer.phoneNumber.replace(/\D/g, ''); // Remover caracteres no numéricos
+            window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
+          } else {
+            this.toastService.warning('El cliente no tiene número de teléfono registrado');
+          }
+        },
+        error: (error) => {
+          console.error('Error loading customer:', error);
+          this.toastService.error('Error al cargar datos del cliente');
+        }
+      });
+    }
+  }
+
+  callPhone(location: any): void {
+    const order = this.orders.find(o => o.id === location.orderId);
+    if (order) {
+      this.customerService.getById(order.customerId).subscribe({
+        next: (customer) => {
+          if (customer.phoneNumber) {
+            window.location.href = `tel:${customer.phoneNumber}`;
+          } else {
+            this.toastService.warning('El cliente no tiene número de teléfono registrado');
+          }
+        },
+        error: (error) => {
+          console.error('Error loading customer:', error);
+          this.toastService.error('Error al cargar datos del cliente');
+        }
+      });
+    }
+  }
+
+  openGoogleMaps(location: any): void {
+    const url = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`;
+    window.open(url, '_blank');
   }
 }
