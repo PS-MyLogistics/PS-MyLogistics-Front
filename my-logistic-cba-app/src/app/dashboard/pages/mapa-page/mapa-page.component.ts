@@ -7,10 +7,12 @@ import { OrderService } from '../../../services/order.service';
 import { CustomerService } from '../../../services/customer.service';
 import { UserService } from '../../../services/user.service';
 import { ToastService } from '../../../services/toast.service';
+import { AuthService } from '../../../services/auth.service';
+import { NotificationService } from '../../../services/notification.service';
 import { DistributionResponse } from '../../../models/distribution.model';
 import { Order } from '../../../models/order.model';
 import { Customer } from '../../../models/customer.model';
-import { UserDto } from '../../../models/user.model';
+import { UserDto, Role } from '../../../models/user.model';
 
 @Component({
   selector: 'app-mapa-page',
@@ -111,28 +113,54 @@ import { UserDto } from '../../../models/user.model';
               </select>
             </div>
             <div class="col-md-6" *ngIf="selectedDistribution">
-              <div class="info-badges">
-                <span class="badge bg-primary me-2">
-                  <svg class="me-1" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                  </svg>
-                  {{ selectedDistribution.dealerName }}
-                </span>
-                <span class="badge bg-info me-2">
-                  <svg class="me-1" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                  </svg>
-                  {{ selectedDistribution.orderCount }} pedidos
-                </span>
-                <span [class]="'badge bg-' + selectedDistribution.statusColor">
-                  {{ selectedDistribution.statusLabel }}
-                </span>
-                <span *ngIf="selectedDistribution.optimized" class="badge bg-success ms-2">
-                  <svg class="me-1" width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
-                  </svg>
-                  Ruta Optimizada
-                </span>
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="info-badges">
+                  <span class="badge bg-primary me-2">
+                    <svg class="me-1" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    {{ selectedDistribution.dealerName }}
+                  </span>
+                  <span class="badge bg-info me-2">
+                    <svg class="me-1" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                    {{ selectedDistribution.orderCount }} pedidos
+                  </span>
+                  <span [class]="'badge bg-' + selectedDistribution.statusColor">
+                    {{ selectedDistribution.statusLabel }}
+                  </span>
+                  <span *ngIf="selectedDistribution.optimized" class="badge bg-success ms-2">
+                    <svg class="me-1" width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                      <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
+                    </svg>
+                    Ruta Optimizada
+                  </span>
+                </div>
+                <div class="d-flex gap-2">
+                  <button
+                    *ngIf="selectedDistribution.status === 'PLANNED'"
+                    class="btn btn-success btn-sm"
+                    (click)="startDeliveryTrip()"
+                    [disabled]="isStartingTrip"
+                  >
+                    <svg class="me-1" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                    </svg>
+                    {{ isStartingTrip ? 'Iniciando...' : 'Iniciar Viaje' }}
+                  </button>
+                  <button
+                    *ngIf="selectedDistribution.status === 'IN_PROGRESS'"
+                    class="btn btn-warning btn-sm"
+                    (click)="revertDeliveryTrip()"
+                    [disabled]="isRevertingTrip"
+                  >
+                    <svg class="me-1" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                    </svg>
+                    {{ isRevertingTrip ? 'Revirtiendo...' : 'Volver a Asignado' }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -209,6 +237,33 @@ import { UserDto } from '../../../models/user.model';
                         <path d="M12 0C7.31 0 3.5 3.81 3.5 8.5c0 6.61 7.75 14.43 8.05 14.76a.5.5 0 00.71 0c.31-.33 8.24-8.15 8.24-14.76C20.5 3.81 16.69 0 12 0zm0 13a4 4 0 110-8 4 4 0 010 8z"></path>
                       </svg>
                     </button>
+                  </div>
+                  <!-- Botones de estado del pedido -->
+                  <div class="order-status-actions mt-2" (click)="$event.stopPropagation()">
+                    <button
+                      *ngIf="canMarkAsDelivered(location.orderId)"
+                      class="btn btn-sm btn-success me-2"
+                      (click)="markOrderAsDelivered(location.orderId)"
+                      [disabled]="isUpdatingOrder"
+                    >
+                      <svg class="me-1" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                      </svg>
+                      Entregado
+                    </button>
+                    <button
+                      *ngIf="canMarkAsCancelled(location.orderId)"
+                      class="btn btn-sm btn-danger"
+                      (click)="markOrderAsCancelled(location.orderId)"
+                      [disabled]="isUpdatingOrder"
+                    >
+                      <svg class="me-1" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                      Cancelado
+                    </button>
+                    <span *ngIf="getOrderStatus(location.orderId) === 'DELIVERED'" class="badge bg-success">Entregado</span>
+                    <span *ngIf="getOrderStatus(location.orderId) === 'CANCELLED'" class="badge bg-danger">Cancelado</span>
                   </div>
                 </div>
               </div>
@@ -654,10 +709,17 @@ import { UserDto } from '../../../models/user.model';
     .btn-warning {
       background: #f59e0b;
       color: white;
+      border: none;
     }
 
     .btn-warning:hover {
       background: #d97706;
+    }
+
+    .btn-warning:disabled {
+      background: #fbbf24;
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .btn-info {
@@ -667,6 +729,27 @@ import { UserDto } from '../../../models/user.model';
 
     .btn-info:hover {
       background: #2563eb;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .order-status-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     @media (max-width: 992px) {
@@ -683,6 +766,8 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   private customerService = inject(CustomerService);
   private userService = inject(UserService);
   private toastService = inject(ToastService);
+  private authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
   private cdr = inject(ChangeDetectorRef);
 
   distributions: any[] = [];
@@ -694,9 +779,11 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   isLoading = false;
   selectedMarkerIndex: number = -1;
   showMap = false;
+  isDealer = false;
+  currentDealerId: string | null = null;
 
   // Filtros
-  filtroEstado: string = 'PLANNED';
+  filtroEstado: string = '';
   filtroDealer: string = '';
   filtroFechaDesde: string = '';
   filtroFechaHasta: string = '';
@@ -709,18 +796,47 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   private map: L.Map | null = null;
   private markers: L.Marker[] = [];
   private resizeObserver?: ResizeObserver;
+  private currentUserMarker: L.Marker | null = null;
+  currentUserLocation: { lat: number; lng: number } | null = null;
+  isStartingTrip = false;
+  isUpdatingOrder = false;
+  isRevertingTrip = false;
 
   ngOnInit(): void {
-    this.loadInitialData();
+    this.isDealer = this.authService.hasRole(Role.DEALER);
+
+    // Si es dealer, obtener su ID primero
+    if (this.isDealer) {
+      this.userService.getCurrentUser().subscribe({
+        next: (user) => {
+          this.currentDealerId = user.id;
+          this.loadInitialData();
+        },
+        error: (error) => {
+          console.error('Error loading current user:', error);
+          this.toastService.error('Error al cargar información del usuario');
+          this.loadInitialData(); // Continuar cargando datos aunque falle
+        }
+      });
+    } else {
+      this.loadInitialData();
+    }
   }
 
   get filteredDistributions(): any[] {
     return this.distributions.filter(dist => {
+      // Si es dealer, filtrar solo sus propios repartos
+      if (this.isDealer && this.currentDealerId) {
+        if (dist.dealerId !== this.currentDealerId) {
+          return false;
+        }
+      }
+
       // Filtro por estado
       const matchesStatus = !this.filtroEstado || dist.status === this.filtroEstado;
 
-      // Filtro por dealer
-      const matchesDealer = !this.filtroDealer || dist.dealerId === this.filtroDealer;
+      // Filtro por dealer (solo para admins)
+      const matchesDealer = this.isDealer || !this.filtroDealer || dist.dealerId === this.filtroDealer;
 
       // Filtro por fecha desde
       const matchesFechaDesde = !this.filtroFechaDesde ||
@@ -1005,6 +1121,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
           if (this.map) {
             this.map.invalidateSize();
             this.addMarkers();
+            this.trackUserLocation();
           }
         }, 250);
 
@@ -1232,5 +1349,411 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   openGoogleMaps(location: any): void {
     const url = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`;
     window.open(url, '_blank');
+  }
+
+  /**
+   * Track user's current location and show on map
+   */
+  trackUserLocation(): void {
+    if (!this.map) return;
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          this.currentUserLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+
+          if (this.map) {
+            // Remove previous user marker if exists
+            if (this.currentUserMarker) {
+              this.currentUserMarker.remove();
+            }
+
+            // Create custom icon for user location
+            const userIcon = L.divIcon({
+              html: `
+                <div style="
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 50%;
+                  background: #10b981;
+                  color: white;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-weight: 600;
+                  font-size: 20px;
+                  border: 4px solid white;
+                  box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+                ">
+                  <svg width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                  </svg>
+                </div>
+              `,
+              className: '',
+              iconSize: [40, 40],
+              iconAnchor: [20, 20],
+              popupAnchor: [0, -20]
+            });
+
+            // Add marker for current user location
+            this.currentUserMarker = L.marker(
+              [this.currentUserLocation.lat, this.currentUserLocation.lng],
+              { icon: userIcon }
+            ).addTo(this.map);
+
+            this.currentUserMarker.bindPopup(`
+              <div style="min-width: 150px;">
+                <h6 style="margin: 0 0 8px 0; font-size: 14px; color: #10b981;">Tu ubicación</h6>
+                <p style="margin: 0; font-size: 12px; color: #6b7280;">Posición actual</p>
+              </div>
+            `);
+          }
+        },
+        (error) => {
+          console.error('Error getting geolocation:', error);
+          this.toastService.warning('No se pudo obtener tu ubicación actual');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      this.toastService.warning('Tu navegador no soporta geolocalización');
+    }
+  }
+
+  /**
+   * Start delivery trip - change distribution to IN_PROGRESS and all orders to SHIPPED
+   */
+  startDeliveryTrip(): void {
+    if (!this.selectedDistribution || this.isStartingTrip) return;
+
+    if (this.selectedDistribution.status !== 'PLANNED') {
+      this.toastService.warning('Solo se puede iniciar viaje en repartos con estado Asignado');
+      return;
+    }
+
+    this.isStartingTrip = true;
+
+    // Update distribution status to IN_PROGRESS
+    this.distributionService.updateDistributionStatus(this.selectedDistribution.id, 'IN_PROGRESS').subscribe({
+      next: () => {
+        // Update all orders to SHIPPED
+        const orderIds = this.selectedDistribution.orderIds || [];
+        let updatedCount = 0;
+        let failedCount = 0;
+
+        if (orderIds.length === 0) {
+          this.isStartingTrip = false;
+          this.toastService.success('Viaje iniciado');
+          // Update local distribution status
+          this.selectedDistribution.status = 'IN_PROGRESS';
+          this.selectedDistribution.statusLabel = this.getStatusLabel('IN_PROGRESS');
+          this.selectedDistribution.statusColor = this.getStatusColor('IN_PROGRESS');
+          return;
+        }
+
+        orderIds.forEach((orderId: string) => {
+          this.orderService.updateOrderStatus(orderId, 'SHIPPED').subscribe({
+            next: () => {
+              updatedCount++;
+              // Update local order status
+              const order = this.orders.find(o => o.id === orderId);
+              if (order) {
+                order.status = 'SHIPPED';
+              }
+
+              if (updatedCount + failedCount === orderIds.length) {
+                this.isStartingTrip = false;
+                if (failedCount === 0) {
+                  this.toastService.success(`Viaje iniciado. ${updatedCount} pedidos marcados como Enviado`);
+                } else {
+                  this.toastService.warning(`Viaje iniciado. ${updatedCount} pedidos actualizados, ${failedCount} fallaron`);
+                }
+                // Update local distribution status
+                this.selectedDistribution.status = 'IN_PROGRESS';
+                this.selectedDistribution.statusLabel = this.getStatusLabel('IN_PROGRESS');
+                this.selectedDistribution.statusColor = this.getStatusColor('IN_PROGRESS');
+
+                // If route is optimized, notify first customer
+                if (this.selectedDistribution.optimized && this.orderLocations.length > 0) {
+                  this.notifyNextCustomer(0);
+                }
+              }
+            },
+            error: (error) => {
+              failedCount++;
+              console.error('Error updating order status:', error);
+              if (updatedCount + failedCount === orderIds.length) {
+                this.isStartingTrip = false;
+                this.toastService.warning(`Viaje iniciado. ${updatedCount} pedidos actualizados, ${failedCount} fallaron`);
+                // Update local distribution status even if some orders failed
+                this.selectedDistribution.status = 'IN_PROGRESS';
+                this.selectedDistribution.statusLabel = this.getStatusLabel('IN_PROGRESS');
+                this.selectedDistribution.statusColor = this.getStatusColor('IN_PROGRESS');
+
+                // If route is optimized, notify first customer even if some orders failed
+                if (this.selectedDistribution.optimized && this.orderLocations.length > 0) {
+                  this.notifyNextCustomer(0);
+                }
+              }
+            }
+          });
+        });
+      },
+      error: (error) => {
+        this.isStartingTrip = false;
+        this.toastService.error('Error al iniciar el viaje');
+        console.error('Error starting delivery trip:', error);
+      }
+    });
+  }
+
+  /**
+   * Revert delivery trip - change distribution back to PLANNED and all orders back to CONFIRMED
+   */
+  revertDeliveryTrip(): void {
+    if (!this.selectedDistribution || this.isRevertingTrip) return;
+
+    if (this.selectedDistribution.status !== 'IN_PROGRESS') {
+      this.toastService.warning('Solo se puede revertir repartos con estado Enviado');
+      return;
+    }
+
+    this.isRevertingTrip = true;
+
+    // Update distribution status to PLANNED
+    this.distributionService.updateDistributionStatus(this.selectedDistribution.id, 'PLANNED').subscribe({
+      next: () => {
+        // Update all orders back to CONFIRMED (only those that are SHIPPED)
+        const orderIds = this.selectedDistribution.orderIds || [];
+        let updatedCount = 0;
+        let failedCount = 0;
+
+        if (orderIds.length === 0) {
+          this.isRevertingTrip = false;
+          this.toastService.success('Reparto revertido a Asignado');
+          // Update local distribution status
+          this.selectedDistribution.status = 'PLANNED';
+          this.selectedDistribution.statusLabel = this.getStatusLabel('PLANNED');
+          this.selectedDistribution.statusColor = this.getStatusColor('PLANNED');
+          return;
+        }
+
+        orderIds.forEach((orderId: string) => {
+          const order = this.orders.find(o => o.id === orderId);
+          // Only revert orders that are SHIPPED (not DELIVERED or CANCELLED)
+          if (order && order.status === 'SHIPPED') {
+            this.orderService.updateOrderStatus(orderId, 'CONFIRMED').subscribe({
+              next: () => {
+                updatedCount++;
+                // Update local order status
+                if (order) {
+                  order.status = 'CONFIRMED';
+                }
+
+                if (updatedCount + failedCount === orderIds.length) {
+                  this.isRevertingTrip = false;
+                  if (failedCount === 0) {
+                    this.toastService.success(`Reparto revertido. ${updatedCount} pedidos marcados como Confirmado`);
+                  } else {
+                    this.toastService.warning(`Reparto revertido. ${updatedCount} pedidos actualizados, ${failedCount} fallaron`);
+                  }
+                  // Update local distribution status
+                  this.selectedDistribution.status = 'PLANNED';
+                  this.selectedDistribution.statusLabel = this.getStatusLabel('PLANNED');
+                  this.selectedDistribution.statusColor = this.getStatusColor('PLANNED');
+                }
+              },
+              error: (error) => {
+                failedCount++;
+                console.error('Error updating order status:', error);
+                if (updatedCount + failedCount === orderIds.length) {
+                  this.isRevertingTrip = false;
+                  this.toastService.warning(`Reparto revertido. ${updatedCount} pedidos actualizados, ${failedCount} fallaron`);
+                  // Update local distribution status even if some orders failed
+                  this.selectedDistribution.status = 'PLANNED';
+                  this.selectedDistribution.statusLabel = this.getStatusLabel('PLANNED');
+                  this.selectedDistribution.statusColor = this.getStatusColor('PLANNED');
+                }
+              }
+            });
+          } else {
+            // Skip orders that are not SHIPPED
+            updatedCount++;
+            if (updatedCount + failedCount === orderIds.length) {
+              this.isRevertingTrip = false;
+              this.toastService.success('Reparto revertido a Asignado');
+              // Update local distribution status
+              this.selectedDistribution.status = 'PLANNED';
+              this.selectedDistribution.statusLabel = this.getStatusLabel('PLANNED');
+              this.selectedDistribution.statusColor = this.getStatusColor('PLANNED');
+            }
+          }
+        });
+      },
+      error: (error) => {
+        this.isRevertingTrip = false;
+        this.toastService.error('Error al revertir el reparto');
+        console.error('Error reverting delivery trip:', error);
+      }
+    });
+  }
+
+  /**
+   * Mark order as delivered
+   */
+  markOrderAsDelivered(orderId: string): void {
+    if (this.isUpdatingOrder) return;
+
+    this.isUpdatingOrder = true;
+
+    this.orderService.updateOrderStatus(orderId, 'DELIVERED').subscribe({
+      next: () => {
+        this.isUpdatingOrder = false;
+        this.toastService.success('Pedido marcado como Entregado');
+
+        // Update local order list
+        const order = this.orders.find(o => o.id === orderId);
+        if (order) {
+          order.status = 'DELIVERED';
+        }
+
+        // If route is optimized, notify next customer in the sequence
+        if (this.selectedDistribution?.optimized) {
+          const currentIndex = this.orderLocations.findIndex(loc => loc.orderId === orderId);
+          if (currentIndex !== -1 && currentIndex < this.orderLocations.length - 1) {
+            // Notify the next customer in the route
+            this.notifyNextCustomer(currentIndex + 1);
+          }
+        }
+
+        // Check if all orders are delivered to complete distribution
+        this.checkDistributionCompletion();
+      },
+      error: (error) => {
+        this.isUpdatingOrder = false;
+        this.toastService.error('Error al actualizar el pedido');
+        console.error('Error marking order as delivered:', error);
+      }
+    });
+  }
+
+  /**
+   * Mark order as cancelled
+   */
+  markOrderAsCancelled(orderId: string): void {
+    if (this.isUpdatingOrder) return;
+
+    this.isUpdatingOrder = true;
+
+    this.orderService.updateOrderStatus(orderId, 'CANCELLED').subscribe({
+      next: () => {
+        this.isUpdatingOrder = false;
+        this.toastService.success('Pedido marcado como Cancelado');
+
+        // Update local order list
+        const order = this.orders.find(o => o.id === orderId);
+        if (order) {
+          order.status = 'CANCELLED';
+        }
+
+        // Check if all orders are delivered/cancelled to complete distribution
+        this.checkDistributionCompletion();
+      },
+      error: (error) => {
+        this.isUpdatingOrder = false;
+        this.toastService.error('Error al actualizar el pedido');
+        console.error('Error marking order as cancelled:', error);
+      }
+    });
+  }
+
+  /**
+   * Check if all orders are delivered/cancelled and mark distribution as complete
+   */
+  checkDistributionCompletion(): void {
+    if (!this.selectedDistribution) return;
+
+    const orderIds = this.selectedDistribution.orderIds || [];
+    const allOrdersProcessed = orderIds.every((orderId: string) => {
+      const order = this.orders.find(o => o.id === orderId);
+      return order && (order.status === 'DELIVERED' || order.status === 'CANCELLED');
+    });
+
+    if (allOrdersProcessed && this.selectedDistribution.status === 'IN_PROGRESS') {
+      this.distributionService.updateDistributionStatus(this.selectedDistribution.id, 'COMPLETED').subscribe({
+        next: () => {
+          this.toastService.success('Reparto completado automáticamente');
+          this.loadInitialData();
+        },
+        error: (error) => {
+          console.error('Error completing distribution:', error);
+        }
+      });
+    }
+  }
+
+  /**
+   * Get order status for display
+   */
+  getOrderStatus(orderId: string): string {
+    const order = this.orders.find(o => o.id === orderId);
+    return order?.status || 'UNKNOWN';
+  }
+
+  /**
+   * Check if order can be marked as delivered
+   */
+  canMarkAsDelivered(orderId: string): boolean {
+    const status = this.getOrderStatus(orderId);
+    return status === 'SHIPPED' || status === 'CONFIRMED';
+  }
+
+  /**
+   * Check if order can be marked as cancelled
+   */
+  canMarkAsCancelled(orderId: string): boolean {
+    const status = this.getOrderStatus(orderId);
+    return status !== 'DELIVERED' && status !== 'CANCELLED';
+  }
+
+  /**
+   * Notify next customer in optimized route that delivery is approaching
+   */
+  notifyNextCustomer(index: number): void {
+    if (!this.selectedDistribution?.optimized || index >= this.orderLocations.length) {
+      return;
+    }
+
+    const nextLocation = this.orderLocations[index];
+    const order = this.orders.find(o => o.id === nextLocation.orderId);
+
+    if (!order) {
+      console.error('Order not found for notification:', nextLocation.orderId);
+      return;
+    }
+
+    // Send notification to customer
+    this.notificationService.notifyCustomerDeliveryStarting({
+      customerId: order.customerId,
+      orderNumber: nextLocation.orderNumber,
+      estimatedPosition: index + 1
+    }).subscribe({
+      next: () => {
+        console.log(`Email sent to customer ${nextLocation.customerName} (position ${index + 1})`);
+        this.toastService.success(`Email enviado a ${nextLocation.customerName}`);
+      },
+      error: (error) => {
+        console.error('Error sending notification:', error);
+        // Don't show error to user - this is a background operation
+      }
+    });
   }
 }

@@ -243,7 +243,8 @@ export class ClientesPageComponent implements OnInit {
   // Action methods for customer
   openWhatsApp(cliente: any): void {
     if (cliente.telefono) {
-      const message = `Hola! Soy el administrador de MyLogistics CBA.`;
+      const tenantName = localStorage.getItem('tenantName') || 'MyLogistics';
+      const message = `Hola! Soy el administrador de ${tenantName}.`;
       const phoneNumber = cliente.telefono.replace(/\D/g, '');
       window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
     } else {

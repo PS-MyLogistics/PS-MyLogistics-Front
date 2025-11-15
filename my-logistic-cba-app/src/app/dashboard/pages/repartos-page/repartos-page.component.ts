@@ -32,11 +32,12 @@ export class RepartosPageComponent implements OnInit {
   dealers: UserDto[] = [];
   orders: Order[] = [];
   isDealer = false;
+  currentDealerId: string | null = null;
 
   // Filtros
   searchTerm: string = '';
   filtroDealer: string = '';
-  filtroEstado: string = 'PLANNED';
+  filtroEstado: string = '';
   filtroFechaDesde: string = '';
   filtroFechaHasta: string = '';
 
@@ -64,7 +65,23 @@ export class RepartosPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.isDealer = this.authService.hasRole(Role.DEALER);
-    this.loadInitialData();
+
+    // Si es dealer, obtener su ID primero
+    if (this.isDealer) {
+      this.userService.getCurrentUser().subscribe({
+        next: (user) => {
+          this.currentDealerId = user.id;
+          this.loadInitialData();
+        },
+        error: (error) => {
+          console.error('Error loading current user:', error);
+          this.toastService.error('Error al cargar información del usuario');
+          this.loadInitialData(); // Continuar cargando datos aunque falle
+        }
+      });
+    } else {
+      this.loadInitialData();
+    }
   }
 
   loadInitialData(): void {
@@ -140,13 +157,20 @@ export class RepartosPageComponent implements OnInit {
 
   applyFilters(): void {
     this.repartosFiltrados = this.repartos.filter(reparto => {
+      // Si es dealer, filtrar solo sus propios repartos
+      if (this.isDealer && this.currentDealerId) {
+        if (reparto.dealerId !== this.currentDealerId) {
+          return false;
+        }
+      }
+
       // Filtro de búsqueda por texto
       const matchesSearch = !this.searchTerm ||
         reparto.dealerName.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
         reparto.orderNumbers.some((num: string) => num.toLowerCase().includes(this.searchTerm.toLowerCase()));
 
-      // Filtro por dealer
-      const matchesDealer = !this.filtroDealer || reparto.dealerId === this.filtroDealer;
+      // Filtro por dealer (solo para admins)
+      const matchesDealer = this.isDealer || !this.filtroDealer || reparto.dealerId === this.filtroDealer;
 
       // Filtro por estado
       const matchesStatus = !this.filtroEstado || reparto.status === this.filtroEstado;

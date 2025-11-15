@@ -29,8 +29,8 @@ import { Role } from '../models/user.model';
             <span>Inicio</span>
           </a>
 
-          <!-- Pedidos (con submenu) -->
-          <div class="nav-group">
+          <!-- Pedidos (con submenu) - Solo para admins -->
+          <div class="nav-group" *ngIf="!isDealer()">
             <button class="nav-item nav-item-toggle" (click)="togglePedidosMenu()">
               <div class="nav-item-content">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -55,13 +55,13 @@ import { Role } from '../models/user.model';
                 </svg>
                 <span>Clientes</span>
               </a>
-              <a *ngIf="!isDealer()" [routerLink]="['/dashboard/zonas']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+              <a [routerLink]="['/dashboard/zonas']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
                 <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
                 </svg>
                 <span>Zonas</span>
               </a>
-              <a *ngIf="!isDealer()" [routerLink]="['/dashboard/productos']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+              <a [routerLink]="['/dashboard/productos']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
                 <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
                 </svg>
@@ -71,7 +71,7 @@ import { Role } from '../models/user.model';
           </div>
 
           <!-- Repartos (con submenu) -->
-          <div class="nav-group" *ngIf="!isDealer()">
+          <div class="nav-group">
             <button class="nav-item nav-item-toggle" (click)="toggleRepartosMenu()">
               <div class="nav-item-content">
                 <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,13 +90,13 @@ import { Role } from '../models/user.model';
                 </svg>
                 <span>Gestión de Repartos</span>
               </a>
-              <a [routerLink]="['/dashboard/usuarios']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+              <a *ngIf="!isDealer()" [routerLink]="['/dashboard/usuarios']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
                 <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                 </svg>
                 <span>Usuarios</span>
               </a>
-              <a [routerLink]="['/dashboard/vehiculos']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
+              <a *ngIf="!isDealer()" [routerLink]="['/dashboard/vehiculos']" routerLinkActive="active" class="submenu-item" (click)="closeSidebar()">
                 <svg class="submenu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path>
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0h-.01M15 17a2 2 0 104 0m-4 0h-.01M9 17h6"></path>
