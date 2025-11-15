@@ -79,7 +79,7 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
               <select class="form-select" [(ngModel)]="filtroEstado" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
                 <option value="">Todos los estados</option>
                 <option value="PENDING">Pendiente</option>
-                <option value="CONFIRMED">Confirmado</option>
+                <option value="CONFIRMED">Asignado</option>
                 <option value="SHIPPED">Enviado</option>
                 <option value="DELIVERED">Entregado</option>
                 <option value="CANCELLED">Cancelado</option>
@@ -269,6 +269,25 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                 >
               </div>
 
+              <div class="mb-3">
+                <div class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="optimizeCheckbox"
+                    [(ngModel)]="optimizeAfterCreation"
+                    [ngModelOptions]="{standalone: true}"
+                  >
+                  <label class="form-check-label" for="optimizeCheckbox">
+                    <svg class="me-1" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" style="vertical-align: middle;">
+                      <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
+                    </svg>
+                    Optimizar ruta automáticamente después de crear el reparto
+                  </label>
+                </div>
+                <small class="text-muted">La optimización calculará la ruta más eficiente para los pedidos seleccionados</small>
+              </div>
+
               <div class="alert alert-info">
                 <strong>Pedidos seleccionados:</strong>
                 <ul class="mb-0 mt-2">
@@ -288,10 +307,12 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                 [disabled]="!selectedDealerId || isCreatingDistribution"
                 (click)="createDistribution()"
               >
-                <span *ngIf="!isCreatingDistribution">Crear Reparto</span>
+                <span *ngIf="!isCreatingDistribution">
+                  {{ optimizeAfterCreation ? 'Crear y Optimizar Reparto' : 'Crear Reparto' }}
+                </span>
                 <span *ngIf="isCreatingDistribution">
                   <span class="spinner-border spinner-border-sm me-2"></span>
-                  Creando...
+                  {{ optimizeAfterCreation ? 'Creando y optimizando...' : 'Creando...' }}
                 </span>
               </button>
             </div>
@@ -839,6 +860,7 @@ export class PedidosPageComponent implements OnInit {
   distributionStartDate: string = '';
   distributionEndDate: string = '';
   isCreatingDistribution = false;
+  optimizeAfterCreation: boolean = false;
 
   // Cancelación de pedidos
   showCancelOrdersModal = false;
@@ -979,7 +1001,7 @@ export class PedidosPageComponent implements OnInit {
   getStatusLabel(status: string): string {
     const statusMap: { [key: string]: string } = {
       'PENDING': 'Pendiente',
-      'CONFIRMED': 'Confirmado',
+      'CONFIRMED': 'Asignado',
       'SHIPPED': 'Enviado',
       'DELIVERED': 'Entregado',
       'CANCELLED': 'Cancelado'
@@ -1019,7 +1041,10 @@ export class PedidosPageComponent implements OnInit {
     return date.toLocaleDateString('es-AR', {
       year: 'numeric',
       month: '2-digit',
-      day: '2-digit'
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
     });
   }
 
@@ -1130,6 +1155,7 @@ export class PedidosPageComponent implements OnInit {
     this.selectedDealerId = '';
     this.distributionStartDate = '';
     this.distributionEndDate = '';
+    this.optimizeAfterCreation = false;
   }
 
   // Métodos del modal de cancelar pedidos
@@ -1228,12 +1254,34 @@ export class PedidosPageComponent implements OnInit {
     this.distributionService.createDistribution(distributionRequest).subscribe({
       next: (distribution) => {
         // El backend actualiza automáticamente el estado de los pedidos a CONFIRMED
-        this.isCreatingDistribution = false;
-        this.toastService.success('Reparto creado exitosamente');
-        this.closeCreateDistributionModal();
-        this.selectedOrders = [];
-        // Recargar los pedidos para reflejar que ahora tienen distributionId y estado actualizado
-        this.loadOrders();
+
+        // Si se marcó la opción de optimizar, optimizar después de crear
+        if (this.optimizeAfterCreation) {
+          this.distributionService.optimizeRoutes(distribution.id).subscribe({
+            next: () => {
+              this.isCreatingDistribution = false;
+              this.toastService.success('Reparto creado y optimizado exitosamente');
+              this.closeCreateDistributionModal();
+              this.selectedOrders = [];
+              this.loadOrders();
+            },
+            error: (error) => {
+              this.isCreatingDistribution = false;
+              console.error('Error optimizing distribution:', error);
+              this.toastService.warning('Reparto creado, pero ocurrió un error al optimizar');
+              this.closeCreateDistributionModal();
+              this.selectedOrders = [];
+              this.loadOrders();
+            }
+          });
+        } else {
+          this.isCreatingDistribution = false;
+          this.toastService.success('Reparto creado exitosamente');
+          this.closeCreateDistributionModal();
+          this.selectedOrders = [];
+          // Recargar los pedidos para reflejar que ahora tienen distributionId y estado actualizado
+          this.loadOrders();
+        }
       },
       error: (error) => {
         this.isCreatingDistribution = false;

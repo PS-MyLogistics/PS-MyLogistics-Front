@@ -36,7 +36,10 @@ export class TimestampPipe implements PipeTransform {
       return date.toLocaleDateString('es-AR', {
         year: 'numeric',
         month: '2-digit',
-        day: '2-digit'
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
       });
     } else if (format === 'dd/MM/yyyy HH:mm') {
       return date.toLocaleDateString('es-AR', {
@@ -45,6 +48,15 @@ export class TimestampPipe implements PipeTransform {
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit'
+      });
+    } else if (format === 'dd/MM/yyyy HH:mm:ss') {
+      return date.toLocaleDateString('es-AR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
       });
     }
 

@@ -761,7 +761,6 @@ export class NuevoPedidoPageComponent implements OnInit {
     };
 
     this.productos.push(nuevoProducto);
-    this.toastService.success(`Producto "${productoEncontrado.name}" agregado`);
 
     // Limpiar selección
     this.productoSeleccionadoId = '';

@@ -554,7 +554,7 @@ export class HomePageComponent implements OnInit {
             color: 'secondary'
           },
           {
-            label: 'Confirmados',
+            label: 'Asignados',
             count: confirmedCount,
             percentage: this.stats.totalOrders > 0 ? Math.round((confirmedCount / this.stats.totalOrders) * 100) : 0,
             color: 'primary'

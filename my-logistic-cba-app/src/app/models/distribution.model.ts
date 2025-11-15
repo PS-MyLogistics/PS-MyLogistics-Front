@@ -19,4 +19,5 @@ export interface DistributionResponse {
   status: string;
   notes?: string;
   optimizatedRoute?: { [key: string]: string };
+  optimized?: boolean;
 }

@@ -45,12 +45,22 @@ export class RepartosPageComponent implements OnInit {
   selectedReparto: any = null;
   selectedRepartoOrders: Order[] = [];
 
+  // Modal detalle de pedido
+  showOrderDetailModal = false;
+  selectedOrder: Order | null = null;
+
   // Selección y acciones masivas
   selectedRepartos: string[] = [];
   showCancelRepartosModal = false;
   showCompleteRepartosModal = false;
   isCancellingRepartos = false;
   isCompletingRepartos = false;
+
+  // Optimización de repartos
+  showOptimizeRepartosModal = false;
+  isOptimizingRepartos = false;
+  optimizeFechaInicio: string = '';
+  optimizeFechaFin: string = '';
 
   ngOnInit(): void {
     this.isDealer = this.authService.hasRole(Role.DEALER);
@@ -205,7 +215,10 @@ export class RepartosPageComponent implements OnInit {
     return date.toLocaleDateString('es-AR', {
       year: 'numeric',
       month: '2-digit',
-      day: '2-digit'
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
     });
   }
 
@@ -263,6 +276,39 @@ export class RepartosPageComponent implements OnInit {
     this.showDetailsModal = false;
     this.selectedReparto = null;
     this.selectedRepartoOrders = [];
+  }
+
+  // Métodos para modal de detalle de pedido
+  verDetallePedido(order: Order): void {
+    this.selectedOrder = order;
+    this.showOrderDetailModal = true;
+  }
+
+  closeOrderDetailModal(): void {
+    this.showOrderDetailModal = false;
+    this.selectedOrder = null;
+  }
+
+  getOrderStatusLabel(status: string): string {
+    const statusMap: { [key: string]: string } = {
+      'PENDING': 'Pendiente',
+      'CONFIRMED': 'Asignado',
+      'SHIPPED': 'Enviado',
+      'DELIVERED': 'Entregado',
+      'CANCELLED': 'Cancelado'
+    };
+    return statusMap[status] || status;
+  }
+
+  getOrderStatusColor(status: string): string {
+    const colorMap: { [key: string]: string } = {
+      'PENDING': 'secondary',
+      'CONFIRMED': 'primary',
+      'SHIPPED': 'warning',
+      'DELIVERED': 'success',
+      'CANCELLED': 'danger'
+    };
+    return colorMap[status] || 'secondary';
   }
 
   // Métodos de selección
@@ -474,5 +520,68 @@ export class RepartosPageComponent implements OnInit {
     const reparto = this.repartos.find(r => r.id === repartoId);
     if (!reparto) return repartoId;
     return `${reparto.dealerName} - ${reparto.orderCount} pedido(s)`;
+  }
+
+  // Métodos para optimización de repartos
+  canOptimizeSelectedRepartos(): boolean {
+    if (this.selectedRepartos.length === 0) return false;
+
+    return this.selectedRepartos.every(repartoId => {
+      const reparto = this.repartos.find(r => r.id === repartoId);
+      return reparto && reparto.status === 'PLANNED' && !reparto.optimized;
+    });
+  }
+
+  openOptimizeRepartosModal(): void {
+    this.optimizeFechaInicio = '';
+    this.optimizeFechaFin = '';
+    this.showOptimizeRepartosModal = true;
+  }
+
+  closeOptimizeRepartosModal(): void {
+    this.showOptimizeRepartosModal = false;
+    this.optimizeFechaInicio = '';
+    this.optimizeFechaFin = '';
+  }
+
+  optimizeRepartos(): void {
+    if (this.selectedRepartos.length === 0) return;
+
+    this.isOptimizingRepartos = true;
+    let processedCount = 0;
+    const totalRepartos = this.selectedRepartos.length;
+
+    this.selectedRepartos.forEach(repartoId => {
+      this.distributionService.optimizeRoutes(repartoId).subscribe({
+        next: () => {
+          // Si se proporcionaron fechas, actualizar las fechas del reparto
+          if (this.optimizeFechaInicio || this.optimizeFechaFin) {
+            // Aquí podrías llamar a un método para actualizar las fechas
+            // Por ahora solo incrementamos el contador
+            processedCount++;
+            this.checkOptimizeCompletion(processedCount, totalRepartos);
+          } else {
+            processedCount++;
+            this.checkOptimizeCompletion(processedCount, totalRepartos);
+          }
+        },
+        error: (error) => {
+          console.error('Error optimizing distribution:', repartoId, error);
+          this.toastService.error(`Error al optimizar reparto: ${error.message || 'Error desconocido'}`);
+          processedCount++;
+          this.checkOptimizeCompletion(processedCount, totalRepartos);
+        }
+      });
+    });
+  }
+
+  checkOptimizeCompletion(processedCount: number, totalRepartos: number): void {
+    if (processedCount === totalRepartos) {
+      this.isOptimizingRepartos = false;
+      this.toastService.success(`${totalRepartos} reparto(s) optimizado(s) exitosamente`);
+      this.closeOptimizeRepartosModal();
+      this.selectedRepartos = [];
+      this.loadInitialData();
+    }
   }
 }

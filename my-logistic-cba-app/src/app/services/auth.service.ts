@@ -189,6 +189,17 @@ export class AuthService {
   }
 
   /**
+   * Initialize automatic token refresh on app startup
+   * Call this from app.component.ts ngOnInit
+   */
+  initializeTokenRefresh(): void {
+    // Only schedule refresh if user is authenticated
+    if (this.isAuthenticated()) {
+      this.scheduleTokenRefresh();
+    }
+  }
+
+  /**
    * Schedule automatic token refresh
    * Refreshes 1 minute before expiration
    */
@@ -205,11 +216,14 @@ export class AuthService {
     // If token expires in less than 1 minute, refresh immediately
     const refreshTime = Math.max(timeUntilExpiration - 60000, 0);
 
+    console.log(`Token refresh scheduled in ${Math.round(refreshTime / 1000)} seconds`);
+
     this.refreshTokenSubscription = timer(refreshTime).pipe(
       switchMap(() => this.refreshToken())
     ).subscribe({
       next: (response) => {
         if (response.success && response.token) {
+          console.log('Token refreshed successfully');
           // Schedule next refresh after successful refresh
           this.scheduleTokenRefresh();
         }

@@ -61,6 +61,12 @@ import { UserDto } from '../../../models/user.model';
                 <span [class]="'badge bg-' + selectedDistribution.statusColor">
                   {{ selectedDistribution.statusLabel }}
                 </span>
+                <span *ngIf="selectedDistribution.optimized" class="badge bg-success ms-2">
+                  <svg class="me-1" width="14" height="14" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
+                  </svg>
+                  Ruta Optimizada
+                </span>
               </div>
             </div>
           </div>
@@ -81,7 +87,15 @@ import { UserDto } from '../../../models/user.model';
         <div class="col-lg-4">
           <div class="card delivery-list">
             <div class="card-header">
-              <h6 class="mb-0">Pedidos del Reparto ({{ orderLocations.length }})</h6>
+              <h6 class="mb-0">
+                {{ selectedDistribution.optimized ? 'Ruta Optimizada' : 'Pedidos del Reparto' }} ({{ orderLocations.length }})
+              </h6>
+              <small *ngIf="selectedDistribution.optimized" class="text-success">
+                <svg class="me-1" width="12" height="12" fill="currentColor" viewBox="0 0 20 20" style="vertical-align: middle;">
+                  <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
+                </svg>
+                Orden de entrega optimizado
+              </small>
             </div>
             <div class="card-body p-0">
               <div
@@ -471,9 +485,38 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   }
 
   finalizeLocationLoading(locations: any[], withoutCoords: number, total: number): void {
-    this.orderLocations = locations;
+    // Si existe ruta optimizada, ordenar según el mapa optimizatedRoute
+    if (this.selectedDistribution.optimized && this.selectedDistribution.optimizatedRoute) {
+      const optimizedRoute = this.selectedDistribution.optimizatedRoute;
+      const sortedLocations: any[] = [];
+
+      // Convertir las claves del mapa a números y ordenar
+      const routeKeys = Object.keys(optimizedRoute).map(k => parseInt(k)).sort((a, b) => a - b);
+
+      // Recorrer el mapa en orden y agregar las ubicaciones correspondientes
+      routeKeys.forEach(position => {
+        const orderId = optimizedRoute[position.toString()];
+        const location = locations.find(loc => loc.orderId === orderId);
+        if (location) {
+          sortedLocations.push(location);
+        }
+      });
+
+      // Agregar cualquier ubicación que no esté en la ruta optimizada (por seguridad)
+      locations.forEach(loc => {
+        if (!sortedLocations.find(sl => sl.orderId === loc.orderId)) {
+          sortedLocations.push(loc);
+        }
+      });
+
+      this.orderLocations = sortedLocations;
+    } else {
+      // Si no está optimizado, usar orden original
+      this.orderLocations = locations;
+    }
+
     this.showCoordinatesInfo(withoutCoords, total);
-    
+
     if (this.orderLocations.length > 0) {
       this.showMap = true;
       this.cdr.detectChanges();
@@ -682,7 +725,10 @@ export class MapaPageComponent implements OnInit, OnDestroy {
     return date.toLocaleDateString('es-AR', {
       year: 'numeric',
       month: '2-digit',
-      day: '2-digit'
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
     });
   }
 }
