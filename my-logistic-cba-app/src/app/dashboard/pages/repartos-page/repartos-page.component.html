@@ -1,0 +1,637 @@
+<div class="page-container">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h5 class="mb-1">Gestión de Repartos</h5>
+      <p class="text-muted mb-0">Administra las distribuciones y asignaciones de pedidos</p>
+    </div>
+    <div class="d-flex gap-2" *ngIf="!isDealer">
+      <button
+        class="btn btn-primary"
+        [disabled]="!canOptimizeSelectedRepartos()"
+        (click)="openOptimizeRepartosModal()"
+      >
+        <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+        Optimizar Reparto{{ selectedRepartos.length > 0 ? ' (' + selectedRepartos.length + ')' : '' }}
+      </button>
+      <button
+        class="btn btn-danger"
+        [disabled]="selectedRepartos.length === 0"
+        (click)="openCancelRepartosModal()"
+      >
+        <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        Cancelar Reparto{{ selectedRepartos.length > 0 ? ' (' + selectedRepartos.length + ')' : '' }}
+      </button>
+      <button
+        class="btn btn-success"
+        [disabled]="selectedRepartos.length === 0"
+        (click)="openCompleteRepartosModal()"
+      >
+        <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        Reparto Entregado{{ selectedRepartos.length > 0 ? ' (' + selectedRepartos.length + ')' : '' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Buscar</label>
+          <input
+            type="text"
+            class="form-control"
+            [(ngModel)]="searchTerm"
+            [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="applyFilters()"
+            placeholder="Buscar por repartidor, nº pedido..."
+          >
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Repartidor</label>
+          <select class="form-select" [(ngModel)]="filtroDealer" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
+            <option value="">Todos</option>
+            <option *ngFor="let dealer of dealers" [value]="dealer.id">{{ dealer.username }}</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Estado</label>
+          <select class="form-select" [(ngModel)]="filtroEstado" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
+            <option value="">Todos los estados</option>
+            <option value="PLANNED">Asignado</option>
+            <option value="IN_PROGRESS">Enviado</option>
+            <option value="COMPLETED">Entregado</option>
+            <option value="CANCELLED">Cancelado</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Desde</label>
+          <input
+            type="date"
+            class="form-control"
+            [(ngModel)]="filtroFechaDesde"
+            [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="applyFilters()"
+          >
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Hasta</label>
+          <input
+            type="date"
+            class="form-control"
+            [(ngModel)]="filtroFechaHasta"
+            [ngModelOptions]="{standalone: true}"
+            (ngModelChange)="applyFilters()"
+          >
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+          <button class="btn btn-secondary w-100" (click)="limpiarFiltros()" title="Limpiar filtros">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+    <p class="mt-3 text-muted">Cargando repartos...</p>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!isLoading && repartosFiltrados.length === 0" class="text-center py-5">
+    <svg class="mb-3" width="64" height="64" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+    </svg>
+    <h6>No se encontraron repartos</h6>
+    <p class="text-muted">{{ searchTerm || filtroDealer || filtroEstado || filtroFechaDesde || filtroFechaHasta ? 'Intenta ajustar los filtros' : 'No hay repartos registrados' }}</p>
+  </div>
+
+  <!-- Tabla de Repartos -->
+  <div class="card" *ngIf="!isLoading && repartosFiltrados.length > 0">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th *ngIf="!isDealer" style="width: 40px;">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  [checked]="allSelectableRepartosSelected()"
+                  (change)="toggleSelectAll()"
+                  title="Seleccionar todos"
+                >
+              </th>
+              <th>Fecha Creación</th>
+              <th>Repartidor</th>
+              <th>Pedidos</th>
+              <th>Inicio Programado</th>
+              <th>Fin Programado</th>
+              <th>Estado</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let reparto of repartosFiltrados">
+              <td *ngIf="!isDealer">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  [checked]="isRepartoSelected(reparto.id)"
+                  [disabled]="reparto.status === 'CANCELLED'"
+                  (change)="toggleRepartoSelection(reparto.id)"
+                  [title]="reparto.status === 'CANCELLED' ? 'No se pueden seleccionar repartos cancelados' : 'Seleccionar reparto'"
+                >
+              </td>
+              <td>{{ formatDate(reparto.createdAt) }}</td>
+              <td>
+                <div>
+                  <strong>{{ reparto.dealerName }}</strong>
+                  <br>
+                  <small class="text-muted">{{ reparto.dealerEmail }}</small>
+                </div>
+              </td>
+              <td>
+                <span class="badge bg-primary">{{ reparto.orderCount }} pedido(s)</span>
+              </td>
+              <td>{{ formatDateTime(reparto.startProgramDateTime) }}</td>
+              <td>{{ formatDateTime(reparto.endProgramDateTime) }}</td>
+              <td>
+                <span [class]="'badge bg-' + reparto.statusColor">
+                  {{ reparto.statusLabel }}
+                </span>
+                <span *ngIf="reparto.optimized" class="badge bg-info ms-1" title="Ruta optimizada">
+                  <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20" style="vertical-align: middle;">
+                    <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
+                  </svg>
+                  Optimizado
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-icon" (click)="verDetalle(reparto)" title="Ver detalles">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info de resultados -->
+  <div class="mt-3 text-muted" *ngIf="!isLoading && repartosFiltrados.length > 0">
+    Mostrando {{ repartosFiltrados.length }} de {{ repartos.length }} repartos
+  </div>
+
+  <!-- Modal Detalles del Reparto -->
+  <div class="modal fade" [class.show]="showDetailsModal" [style.display]="showDetailsModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showDetailsModal" (click)="closeDetailsModal()"></div>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Detalles del Reparto</h5>
+          <button type="button" class="btn-close" (click)="closeDetailsModal()"></button>
+        </div>
+        <div class="modal-body" *ngIf="selectedReparto">
+          <!-- Información General -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Fecha de Creación</label>
+                <p class="detail-value">{{ formatDate(selectedReparto.createdAt) }}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Estado</label>
+                <p class="detail-value">
+                  <span [class]="'badge bg-' + selectedReparto.statusColor">
+                    {{ selectedReparto.statusLabel }}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información del Repartidor -->
+          <h6 class="section-title">Repartidor Asignado</h6>
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Nombre</label>
+                <p class="detail-value">{{ selectedReparto.dealerName }}</p>
+              </div>
+            </div>
+            <div class="col-md-6" *ngIf="selectedReparto.dealerEmail">
+              <div class="detail-group">
+                <label class="detail-label">Email</label>
+                <p class="detail-value">{{ selectedReparto.dealerEmail }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fechas Programadas -->
+          <h6 class="section-title">Fechas Programadas</h6>
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Inicio Programado</label>
+                <p class="detail-value">{{ formatDateTime(selectedReparto.startProgramDateTime) }}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Fin Programado</label>
+                <p class="detail-value">{{ formatDateTime(selectedReparto.endProgramDateTime) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pedidos Asignados -->
+          <h6 class="section-title">Pedidos Asignados ({{ selectedReparto.orderCount }})</h6>
+          <div class="mb-3">
+            <div *ngIf="selectedRepartoOrders.length > 0" class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead>
+                  <tr>
+                    <th>Nº Pedido</th>
+                    <th>Cliente</th>
+                    <th>Dirección</th>
+                    <th>Estado</th>
+                    <th>Total</th>
+                    <th style="width: 80px;">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let order of selectedRepartoOrders">
+                    <td><strong>#{{ order.orderNumber }}</strong></td>
+                    <td>{{ order.customerName }}</td>
+                    <td>{{ order.customerAddress }}</td>
+                    <td>
+                      <span [class]="'badge bg-' + (order.status === 'PENDING' ? 'secondary' :
+                                                     order.status === 'CONFIRMED' ? 'primary' :
+                                                     order.status === 'SHIPPED' ? 'warning' :
+                                                     order.status === 'DELIVERED' ? 'success' : 'danger')">
+                        {{ order.status === 'PENDING' ? 'Pendiente' :
+                           order.status === 'CONFIRMED' ? 'Asignado' :
+                           order.status === 'SHIPPED' ? 'Enviado' :
+                           order.status === 'DELIVERED' ? 'Entregado' : 'Cancelado' }}
+                      </span>
+                    </td>
+                    <td>${{ order.totalAmount.toFixed(2) }}</td>
+                    <td>
+                      <button class="btn btn-sm btn-icon" (click)="verDetallePedido(order)" title="Ver detalle del pedido">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div *ngIf="selectedReparto.orderCount === 0" class="alert alert-info mb-0">
+              No hay pedidos asignados a este reparto
+            </div>
+          </div>
+
+          <!-- Notas -->
+          <div *ngIf="selectedReparto.notes" class="mb-3">
+            <h6 class="section-title">Notas</h6>
+            <div class="alert alert-info mb-0">
+              {{ selectedReparto.notes }}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeDetailsModal()">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cancelar Repartos -->
+  <div class="modal fade" [class.show]="showCancelRepartosModal" [style.display]="showCancelRepartosModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showCancelRepartosModal" (click)="closeCancelRepartosModal()"></div>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Cancelar Repartos</h5>
+          <button type="button" class="btn-close" (click)="closeCancelRepartosModal()" [disabled]="isCancellingRepartos"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <svg class="me-2" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            <strong>Atención:</strong> Esta acción cancelará {{ selectedRepartos.length }} reparto(s) seleccionado(s) y todos sus pedidos volverán a estado PENDIENTE.
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Repartos a cancelar:</label>
+            <ul class="list-group">
+              <li class="list-group-item" *ngFor="let repartoId of selectedRepartos">
+                {{ getRepartoIdentifier(repartoId) }}
+              </li>
+            </ul>
+          </div>
+          <p class="text-muted mb-0">¿Estás seguro de que deseas continuar?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeCancelRepartosModal()" [disabled]="isCancellingRepartos">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-danger" [disabled]="isCancellingRepartos" (click)="cancelRepartos()">
+            <span *ngIf="!isCancellingRepartos">
+              <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              Confirmar Cancelación
+            </span>
+            <span *ngIf="isCancellingRepartos">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              Cancelando...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Completar Repartos -->
+  <div class="modal fade" [class.show]="showCompleteRepartosModal" [style.display]="showCompleteRepartosModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showCompleteRepartosModal" (click)="closeCompleteRepartosModal()"></div>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Marcar Repartos como Entregados</h5>
+          <button type="button" class="btn-close" (click)="closeCompleteRepartosModal()" [disabled]="isCompletingRepartos"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-success">
+            <svg class="me-2" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            <strong>Confirmación:</strong> Esta acción marcará {{ selectedRepartos.length }} reparto(s) como ENTREGADO(S) y todos sus pedidos pasarán a estado ENTREGADO.
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Repartos a marcar como entregados:</label>
+            <ul class="list-group">
+              <li class="list-group-item" *ngFor="let repartoId of selectedRepartos">
+                {{ getRepartoIdentifier(repartoId) }}
+              </li>
+            </ul>
+          </div>
+          <p class="text-muted mb-0">¿Estás seguro de que deseas continuar?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeCompleteRepartosModal()" [disabled]="isCompletingRepartos">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-success" [disabled]="isCompletingRepartos" (click)="completeRepartos()">
+            <span *ngIf="!isCompletingRepartos">
+              <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Confirmar Entrega
+            </span>
+            <span *ngIf="isCompletingRepartos">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              Procesando...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalle de Pedido -->
+  <div class="modal fade" [class.show]="showOrderDetailModal" [style.display]="showOrderDetailModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showOrderDetailModal" (click)="closeOrderDetailModal()"></div>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Detalle del Pedido #{{ selectedOrder?.orderNumber }}</h5>
+          <button type="button" class="btn-close" (click)="closeOrderDetailModal()"></button>
+        </div>
+        <div class="modal-body" *ngIf="selectedOrder">
+          <!-- Información General -->
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Número de Pedido</label>
+                <p class="detail-value"><strong>#{{ selectedOrder.orderNumber }}</strong></p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Estado</label>
+                <p class="detail-value">
+                  <span [class]="'badge bg-' + getOrderStatusColor(selectedOrder.status)">
+                    {{ getOrderStatusLabel(selectedOrder.status) }}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Fecha de Creación</label>
+                <p class="detail-value">{{ formatDate(selectedOrder.createdAt) }}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Total</label>
+                <p class="detail-value"><strong>${{ selectedOrder.totalAmount.toFixed(2) }}</strong></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información del Cliente -->
+          <h6 class="section-title">Información del Cliente</h6>
+          <div class="row mb-4">
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Nombre</label>
+                <p class="detail-value">{{ selectedOrder.customerName }}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="detail-group">
+                <label class="detail-label">Dirección</label>
+                <p class="detail-value">{{ selectedOrder.customerAddress }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-4" *ngIf="selectedOrder.customerCity || selectedOrder.customerZoneName">
+            <div class="col-md-6" *ngIf="selectedOrder.customerCity">
+              <div class="detail-group">
+                <label class="detail-label">Ciudad</label>
+                <p class="detail-value">{{ selectedOrder.customerCity }}</p>
+              </div>
+            </div>
+            <div class="col-md-6" *ngIf="selectedOrder.customerZoneName">
+              <div class="detail-group">
+                <label class="detail-label">Zona</label>
+                <p class="detail-value">
+                  <span class="badge" [style.background-color]="selectedOrder.customerZoneColor || '#6c757d'">
+                    {{ selectedOrder.customerZoneName }}
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Productos -->
+          <h6 class="section-title">Productos ({{ selectedOrder.items.length }})</h6>
+          <div class="mb-3">
+            <div *ngIf="selectedOrder.items && selectedOrder.items.length > 0" class="table-responsive">
+              <table class="table table-sm table-bordered">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unitario</th>
+                    <th>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of selectedOrder.items">
+                    <td>{{ item.productName || item.productId }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>${{ item.unitPrice.toFixed(2) }}</td>
+                    <td>${{ item.subtotal.toFixed(2) }}</td>
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                    <td><strong>${{ selectedOrder.totalAmount.toFixed(2) }}</strong></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <div *ngIf="!selectedOrder.items || selectedOrder.items.length === 0" class="alert alert-info mb-0">
+              No hay productos en este pedido
+            </div>
+          </div>
+
+          <!-- Repartidor asignado -->
+          <div *ngIf="selectedOrder.dealerName" class="mb-3">
+            <h6 class="section-title">Repartidor Asignado</h6>
+            <div class="detail-group">
+              <p class="detail-value">{{ selectedOrder.dealerName }}</p>
+            </div>
+          </div>
+
+          <!-- Notas -->
+          <div *ngIf="selectedOrder.notes" class="mb-3">
+            <h6 class="section-title">Notas</h6>
+            <div class="alert alert-info mb-0">
+              {{ selectedOrder.notes }}
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeOrderDetailModal()">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Optimizar Repartos -->
+  <div class="modal fade" [class.show]="showOptimizeRepartosModal" [style.display]="showOptimizeRepartosModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showOptimizeRepartosModal" (click)="closeOptimizeRepartosModal()"></div>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Optimizar Repartos</h5>
+          <button type="button" class="btn-close" (click)="closeOptimizeRepartosModal()" [disabled]="isOptimizingRepartos"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-info">
+            <svg class="me-2" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+            </svg>
+            <strong>Información:</strong> Se optimizarán las rutas de {{ selectedRepartos.length }} reparto(s) asignado(s). Opcionalmente puedes especificar fechas de inicio y fin.
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Repartos a optimizar:</label>
+            <ul class="list-group">
+              <li class="list-group-item" *ngFor="let repartoId of selectedRepartos">
+                {{ getRepartoIdentifier(repartoId) }}
+              </li>
+            </ul>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Fecha de Inicio (Opcional)</label>
+              <input
+                type="datetime-local"
+                class="form-control"
+                [(ngModel)]="optimizeFechaInicio"
+                [ngModelOptions]="{standalone: true}"
+                [disabled]="isOptimizingRepartos"
+              >
+              <small class="text-muted">Dejar vacío para mantener la fecha actual</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Fecha de Fin (Opcional)</label>
+              <input
+                type="datetime-local"
+                class="form-control"
+                [(ngModel)]="optimizeFechaFin"
+                [ngModelOptions]="{standalone: true}"
+                [disabled]="isOptimizingRepartos"
+              >
+              <small class="text-muted">Dejar vacío para mantener la fecha actual</small>
+            </div>
+          </div>
+          <p class="text-muted mb-0">¿Estás seguro de que deseas optimizar los repartos seleccionados?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeOptimizeRepartosModal()" [disabled]="isOptimizingRepartos">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-primary" [disabled]="isOptimizingRepartos" (click)="optimizeRepartos()">
+            <span *ngIf="!isOptimizingRepartos">
+              <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+              Confirmar Optimización
+            </span>
+            <span *ngIf="isOptimizingRepartos">
+              <span class="spinner-border spinner-border-sm me-2"></span>
+              Optimizando...
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
