@@ -5,9 +5,11 @@ import { CustomerService } from '../../../services/customer.service';
 import { ZoneService } from '../../../services/zone.service';
 import { ToastService } from '../../../services/toast.service';
 import { AuthService } from '../../../services/auth.service';
+import { PromotionService } from '../../../services/promotion.service';
 import { Customer, CustomerCreationRequest } from '../../../models/customer.model';
 import { ZoneResponse } from '../../../models/zone.model';
 import { Role } from '../../../models/user.model';
+import { CustomerWithLastOrder, InactivityPeriod } from '../../../models/promotion.model';
 
 @Component({
   selector: 'app-clientes-page',
@@ -21,10 +23,12 @@ export class ClientesPageComponent implements OnInit {
   private zoneService = inject(ZoneService);
   private toastService = inject(ToastService);
   private authService = inject(AuthService);
+  private promotionService = inject(PromotionService);
 
   clientes: any[] = [];
   clientesFiltrados: any[] = [];
   clientesOriginales: Customer[] = [];
+  clientesConUltimoPedido: CustomerWithLastOrder[] = [];
   zones: ZoneResponse[] = [];
   isLoading = false;
   errorMessage = '';
@@ -33,6 +37,17 @@ export class ClientesPageComponent implements OnInit {
   // Filtros
   searchTerm: string = '';
   filtroEstado: string = '';
+  filtroInactividad: string = '';
+  selectedCustomers: string[] = [];
+
+  // Inactivity periods for dropdown
+  inactivityPeriods = [
+    { label: 'Más de 7 días', value: InactivityPeriod.WEEK_1.toString() },
+    { label: 'Más de 1 mes', value: InactivityPeriod.MONTH_1.toString() },
+    { label: 'Más de 3 meses', value: InactivityPeriod.MONTHS_3.toString() },
+    { label: 'Más de 6 meses', value: InactivityPeriod.MONTHS_6.toString() },
+    { label: 'Más de 1 año', value: '365' }
+  ];
 
   // Modal create customer
   showCreateModal = false;
@@ -49,12 +64,25 @@ export class ClientesPageComponent implements OnInit {
   isDeleting = false;
   customerToDelete: any = null;
 
+  // Modal promotional email
+  showPromotionalModal = false;
+  isSendingPromotion = false;
+  promotionalEmail = {
+    subject: '',
+    message: ''
+  };
+
   newCustomer: CustomerCreationRequest = this.getEmptyCustomer();
 
   ngOnInit(): void {
     this.isDealer = this.authService.hasRole(Role.DEALER);
     this.loadZones();
     this.loadCustomers();
+
+    // Si hay un filtro de inactividad activo al cargar el componente, cargar los datos
+    if (this.filtroInactividad) {
+      this.loadCustomersWithLastOrder();
+    }
   }
 
   getEmptyCustomer(): CustomerCreationRequest {
@@ -153,13 +181,35 @@ export class ClientesPageComponent implements OnInit {
       const matchesStatus = !this.filtroEstado ||
         cliente.isActive.toString() === this.filtroEstado;
 
-      return matchesSearch && matchesStatus;
+      // Filtro por inactividad:
+      // - Si NO hay filtro de inactividad: mostrar TODOS los clientes
+      // - Si hay filtro de inactividad: mostrar solo clientes con datos de pedido
+      let matchesInactivity = true;
+      if (this.filtroInactividad) {
+        matchesInactivity = (cliente.daysSinceLastOrder !== undefined && cliente.daysSinceLastOrder !== null);
+      }
+
+      return matchesSearch && matchesStatus && matchesInactivity;
     });
   }
 
   limpiarFiltros(): void {
     this.searchTerm = '';
     this.filtroEstado = '';
+    this.filtroInactividad = '';
+
+    // Limpiar datos de pedidos al quitar filtro de inactividad
+    this.clientesConUltimoPedido = [];
+    this.clientes = this.clientes.map(cliente => ({
+      ...cliente,
+      lastOrderDate: undefined,
+      lastOrderNumber: undefined,
+      lastOrderTotal: undefined,
+      lastOrderStatus: undefined,
+      daysSinceLastOrder: undefined,
+      totalOrders: undefined
+    }));
+
     this.applyFilters();
   }
 
@@ -331,6 +381,7 @@ export class ClientesPageComponent implements OnInit {
         this.isDeleting = false;
         this.toastService.success(`Cliente ${this.customerToDelete.nombre} eliminado exitosamente`);
         this.loadCustomers();
+        this.loadCustomersWithLastOrder();
         this.closeDeleteModal();
       },
       error: (error) => {
@@ -339,5 +390,190 @@ export class ClientesPageComponent implements OnInit {
         console.error('Error deleting customer:', error);
       }
     });
+  }
+
+  // === FUNCIONALIDADES DE FIDELIZACIÓN ===
+
+  loadCustomersWithLastOrder(): void {
+    // Si no hay filtro de inactividad, no cargar datos
+    if (!this.filtroInactividad && this.filtroInactividad !== '0') {
+      return;
+    }
+
+    const days = parseInt(this.filtroInactividad);
+
+    // Si aún no hay clientes cargados, esperar un poco y reintentar
+    if (this.clientes.length === 0) {
+      setTimeout(() => this.loadCustomersWithLastOrder(), 100);
+      return;
+    }
+
+    this.promotionService.getCustomersWithLastOrder(days).subscribe({
+      next: (customers) => {
+        this.clientesConUltimoPedido = customers;
+        this.mergeCustomerData();
+      },
+      error: (error) => {
+        console.error('Error loading customers with last order:', error);
+      }
+    });
+  }
+
+  mergeCustomerData(): void {
+    console.log('🔄 Mergeando datos. Total clientes:', this.clientes.length);
+    console.log('🔄 Total clientes con pedido del backend:', this.clientesConUltimoPedido.length);
+
+    if (this.clientesConUltimoPedido.length > 0) {
+      console.log('📋 IDs de clientes del backend:', this.clientesConUltimoPedido.map(c => c.customerId));
+      console.log('📋 IDs de clientes del frontend:', this.clientes.map(c => c.id));
+    }
+
+    this.clientes = this.clientes.map(cliente => {
+      const customerWithOrder = this.clientesConUltimoPedido.find(c => c.customerId === cliente.id);
+      if (customerWithOrder) {
+        console.log(`✅ Match encontrado para cliente: ${cliente.nombre} (ID: ${cliente.id})`, customerWithOrder);
+        return {
+          ...cliente,
+          lastOrderDate: customerWithOrder.lastOrderDate,
+          lastOrderNumber: customerWithOrder.lastOrderNumber,
+          lastOrderTotal: customerWithOrder.lastOrderAmount,
+          lastOrderStatus: customerWithOrder.lastOrderStatus,
+          daysSinceLastOrder: customerWithOrder.daysSinceLastOrder,
+          totalOrders: customerWithOrder.totalOrders
+        };
+      }
+      return {
+        ...cliente,
+        lastOrderDate: undefined,
+        lastOrderNumber: undefined,
+        lastOrderTotal: undefined,
+        lastOrderStatus: undefined,
+        daysSinceLastOrder: undefined,
+        totalOrders: undefined
+      };
+    });
+
+    console.log('✅ Merge completado. Clientes con daysSinceLastOrder:',
+      this.clientes.filter(c => c.daysSinceLastOrder !== undefined).length);
+    this.applyFilters();
+  }
+
+  onInactivityFilterChange(): void {
+    if (!this.filtroInactividad) {
+      // Si se limpia el filtro, limpiar datos de pedidos
+      this.clientesConUltimoPedido = [];
+      this.clientes = this.clientes.map(cliente => ({
+        ...cliente,
+        lastOrderDate: undefined,
+        lastOrderNumber: undefined,
+        lastOrderTotal: undefined,
+        lastOrderStatus: undefined,
+        daysSinceLastOrder: undefined,
+        totalOrders: undefined
+      }));
+      this.applyFilters();
+    } else {
+      // Si hay filtro activo, cargar datos
+      this.loadCustomersWithLastOrder();
+    }
+  }
+
+  toggleCustomerSelection(customerId: string): void {
+    const index = this.selectedCustomers.indexOf(customerId);
+    if (index > -1) {
+      this.selectedCustomers.splice(index, 1);
+    } else {
+      this.selectedCustomers.push(customerId);
+    }
+  }
+
+  toggleSelectAll(): void {
+    if (this.selectedCustomers.length === this.clientesFiltrados.length) {
+      this.selectedCustomers = [];
+    } else {
+      this.selectedCustomers = this.clientesFiltrados.map(c => c.id);
+    }
+  }
+
+  isCustomerSelected(customerId: string): boolean {
+    return this.selectedCustomers.includes(customerId);
+  }
+
+  areAllSelected(): boolean {
+    return this.clientesFiltrados.length > 0 &&
+           this.selectedCustomers.length === this.clientesFiltrados.length;
+  }
+
+  openPromotionalModal(): void {
+    if (this.selectedCustomers.length === 0) {
+      this.toastService.warning('Selecciona al menos un cliente para enviar la promoción');
+      return;
+    }
+    this.showPromotionalModal = true;
+  }
+
+  closePromotionalModal(): void {
+    this.showPromotionalModal = false;
+    this.promotionalEmail = {
+      subject: '',
+      message: ''
+    };
+  }
+
+  sendPromotionalEmail(): void {
+    if (!this.promotionalEmail.subject || !this.promotionalEmail.message) {
+      this.toastService.error('Por favor completa el asunto y el mensaje');
+      return;
+    }
+
+    if (this.selectedCustomers.length === 0) {
+      this.toastService.error('No hay clientes seleccionados');
+      return;
+    }
+
+    this.isSendingPromotion = true;
+
+    this.promotionService.sendPromotionalEmail({
+      customerIds: this.selectedCustomers,
+      subject: this.promotionalEmail.subject,
+      message: this.promotionalEmail.message
+    }).subscribe({
+      next: (response) => {
+        this.isSendingPromotion = false;
+        this.toastService.success(`Email enviado a ${response.sentCount} cliente(s)`);
+        this.closePromotionalModal();
+        this.selectedCustomers = [];
+      },
+      error: (error) => {
+        this.isSendingPromotion = false;
+        this.toastService.error(error.error?.message || 'Error al enviar emails promocionales');
+        console.error('Error sending promotional email:', error);
+      }
+    });
+  }
+
+  getDaysSinceLastOrderBadge(days?: number): string {
+    if (days === undefined || days === null) return '';
+    if (days >= 365) return 'danger';
+    if (days >= 180) return 'warning';
+    if (days >= 90) return 'info';
+    if (days >= 30) return 'secondary';
+    return 'success';
+  }
+
+  formatDaysSinceLastOrder(days?: number): string {
+    if (days === undefined || days === null) return 'Sin pedidos';
+    if (days === 0) return 'Hoy';
+    if (days < 7) return `Hace ${days} día${days > 1 ? 's' : ''}`;
+    if (days < 30) {
+      const weeks = Math.floor(days / 7);
+      return `Hace ${weeks} semana${weeks > 1 ? 's' : ''}`;
+    }
+    if (days < 365) {
+      const months = Math.floor(days / 30);
+      return `Hace ${months} mes${months > 1 ? 'es' : ''}`;
+    }
+    const years = Math.floor(days / 365);
+    return `Hace ${years} año${years > 1 ? 's' : ''}`;
   }
 }
