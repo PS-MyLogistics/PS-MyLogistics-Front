@@ -101,14 +101,14 @@ import { UserDto, Role } from '../../../models/user.model';
             <div class="col-md-6">
               <label class="form-label">Seleccionar Reparto</label>
               <select
-                class="form-select"
+                class="form-select distribution-select"
                 [(ngModel)]="selectedDistributionId"
                 (ngModelChange)="onDistributionChange()"
                 [disabled]="isLoading"
               >
                 <option value="">-- Selecciona un reparto --</option>
-                <option *ngFor="let dist of filteredDistributions" [value]="dist.id">
-                  {{ dist.dealerName }} - {{ dist.orderCount }} pedido(s) - {{ formatDate(dist.createdAt) }}
+                <option *ngFor="let dist of filteredDistributions" [value]="dist.id" [attr.data-status]="dist.status">
+                  {{ getDistributionStatusIcon(dist.status) }} {{ dist.dealerName }} - {{ dist.orderCount }} pedido(s) - {{ formatDate(dist.createdAt) }}
                 </option>
               </select>
             </div>
@@ -137,7 +137,18 @@ import { UserDto, Role } from '../../../models/user.model';
                     Ruta Optimizada
                   </span>
                 </div>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 align-items-center">
+                  <div *ngIf="selectedDistribution.status === 'PLANNED' && selectedDistribution.optimized" class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="sendEmailCheckbox"
+                      [(ngModel)]="sendEmailNotifications"
+                    >
+                    <label class="form-check-label" for="sendEmailCheckbox" style="font-size: 13px;">
+                      Enviar emails a clientes
+                    </label>
+                  </div>
                   <button
                     *ngIf="selectedDistribution.status === 'PLANNED'"
                     class="btn btn-success btn-sm"
@@ -150,7 +161,7 @@ import { UserDto, Role } from '../../../models/user.model';
                     {{ isStartingTrip ? 'Iniciando...' : 'Iniciar Viaje' }}
                   </button>
                   <button
-                    *ngIf="selectedDistribution.status === 'IN_PROGRESS'"
+                    *ngIf="selectedDistribution.status === 'IN_PROGRESS' || selectedDistribution.status === 'COMPLETED'"
                     class="btn btn-warning btn-sm"
                     (click)="revertDeliveryTrip()"
                     [disabled]="isRevertingTrip"
@@ -200,7 +211,24 @@ import { UserDto, Role } from '../../../models/user.model';
                 <div class="delivery-number" (click)="focusOnMarker(i)">{{ i + 1 }}</div>
                 <div class="delivery-info" (click)="focusOnMarker(i)">
                   <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h6 class="mb-0">#{{ location.orderNumber }}</h6>
+                    <div class="d-flex align-items-center gap-2">
+                      <h6 class="mb-0">#{{ location.orderNumber }}</h6>
+                      <span [class]="'status-icon status-' + getOrderStatus(location.orderId).toLowerCase()" [title]="getStatusLabel(getOrderStatus(location.orderId))">
+                        <svg *ngIf="getOrderStatus(location.orderId) === 'CONFIRMED'" width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                        </svg>
+                        <svg *ngIf="getOrderStatus(location.orderId) === 'SHIPPED'" width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"/>
+                          <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z"/>
+                        </svg>
+                        <svg *ngIf="getOrderStatus(location.orderId) === 'DELIVERED'" width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <svg *ngIf="getOrderStatus(location.orderId) === 'CANCELLED'" width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                      </span>
+                    </div>
                     <span class="badge bg-primary">{{ location.customerName }}</span>
                   </div>
                   <p class="text-muted small mb-2">
@@ -253,7 +281,7 @@ import { UserDto, Role } from '../../../models/user.model';
                     </button>
                     <button
                       *ngIf="canMarkAsCancelled(location.orderId)"
-                      class="btn btn-sm btn-danger"
+                      class="btn btn-sm btn-danger me-2"
                       (click)="markOrderAsCancelled(location.orderId)"
                       [disabled]="isUpdatingOrder"
                     >
@@ -262,8 +290,19 @@ import { UserDto, Role } from '../../../models/user.model';
                       </svg>
                       Cancelado
                     </button>
-                    <span *ngIf="getOrderStatus(location.orderId) === 'DELIVERED'" class="badge bg-success">Entregado</span>
-                    <span *ngIf="getOrderStatus(location.orderId) === 'CANCELLED'" class="badge bg-danger">Cancelado</span>
+                    <button
+                      *ngIf="canRevertOrder(location.orderId)"
+                      class="btn btn-sm btn-warning me-2"
+                      (click)="revertOrderToConfirmed(location.orderId)"
+                      [disabled]="isUpdatingOrder"
+                    >
+                      <svg class="me-1" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                      </svg>
+                      Volver a Asignado
+                    </button>
+                    <span *ngIf="getOrderStatus(location.orderId) === 'DELIVERED' && !canRevertOrder(location.orderId)" class="badge bg-success">Entregado</span>
+                    <span *ngIf="getOrderStatus(location.orderId) === 'CANCELLED' && !canRevertOrder(location.orderId)" class="badge bg-danger">Cancelado</span>
                   </div>
                 </div>
               </div>
@@ -329,8 +368,8 @@ import { UserDto, Role } from '../../../models/user.model';
                       <tr *ngFor="let item of selectedOrderDetail?.order?.items">
                         <td>{{ item.productName }}</td>
                         <td>{{ item.quantity }}</td>
-                        <td class="text-end">\${{ item.price | number:'1.2-2' }}</td>
-                        <td class="text-end">\${{ (item.quantity * item.price) | number:'1.2-2' }}</td>
+                        <td class="text-end">\${{ item.unitPrice | number:'1.2-2' }}</td>
+                        <td class="text-end">\${{ (item.quantity * item.unitPrice) | number:'1.2-2' }}</td>
                       </tr>
                     </tbody>
                     <tfoot>
@@ -752,6 +791,36 @@ import { UserDto, Role } from '../../../models/user.model';
       flex-wrap: wrap;
     }
 
+    .status-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .status-icon.status-confirmed {
+      color: #3b82f6;
+      background: #dbeafe;
+    }
+
+    .status-icon.status-shipped {
+      color: #f59e0b;
+      background: #fef3c7;
+    }
+
+    .status-icon.status-delivered {
+      color: #10b981;
+      background: #d1fae5;
+    }
+
+    .status-icon.status-cancelled {
+      color: #ef4444;
+      background: #fee2e2;
+    }
+
     @media (max-width: 992px) {
       .delivery-list, .map-container {
         height: 400px;
@@ -801,6 +870,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   isStartingTrip = false;
   isUpdatingOrder = false;
   isRevertingTrip = false;
+  sendEmailNotifications = true; // Checkbox para habilitar/deshabilitar emails
 
   ngOnInit(): void {
     this.isDealer = this.authService.hasRole(Role.DEALER);
@@ -1251,6 +1321,18 @@ export class MapaPageComponent implements OnInit, OnDestroy {
     return colorMap[status] || 'secondary';
   }
 
+  getDistributionStatusIcon(status: string): string {
+    const iconMap: { [key: string]: string } = {
+      'PENDING': '⏸️',
+      'PLANNED': '📋',
+      'ASSIGNED': '📋',
+      'IN_PROGRESS': '🚚',
+      'COMPLETED': '✅',
+      'CANCELLED': '❌'
+    };
+    return iconMap[status] || '📦';
+  }
+
   formatDate(dateString: string | number): string {
     if (!dateString) return '';
 
@@ -1481,8 +1563,8 @@ export class MapaPageComponent implements OnInit, OnDestroy {
                 this.selectedDistribution.statusLabel = this.getStatusLabel('IN_PROGRESS');
                 this.selectedDistribution.statusColor = this.getStatusColor('IN_PROGRESS');
 
-                // If route is optimized, notify first customer
-                if (this.selectedDistribution.optimized && this.orderLocations.length > 0) {
+                // If route is optimized and email notifications enabled, notify first customer
+                if (this.selectedDistribution.optimized && this.sendEmailNotifications && this.orderLocations.length > 0) {
                   this.notifyNextCustomer(0);
                 }
               }
@@ -1498,8 +1580,8 @@ export class MapaPageComponent implements OnInit, OnDestroy {
                 this.selectedDistribution.statusLabel = this.getStatusLabel('IN_PROGRESS');
                 this.selectedDistribution.statusColor = this.getStatusColor('IN_PROGRESS');
 
-                // If route is optimized, notify first customer even if some orders failed
-                if (this.selectedDistribution.optimized && this.orderLocations.length > 0) {
+                // If route is optimized and email notifications enabled, notify first customer even if some orders failed
+                if (this.selectedDistribution.optimized && this.sendEmailNotifications && this.orderLocations.length > 0) {
                   this.notifyNextCustomer(0);
                 }
               }
@@ -1521,8 +1603,8 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   revertDeliveryTrip(): void {
     if (!this.selectedDistribution || this.isRevertingTrip) return;
 
-    if (this.selectedDistribution.status !== 'IN_PROGRESS') {
-      this.toastService.warning('Solo se puede revertir repartos con estado Enviado');
+    if (this.selectedDistribution.status !== 'IN_PROGRESS' && this.selectedDistribution.status !== 'COMPLETED') {
+      this.toastService.warning('Solo se puede revertir repartos con estado Enviado o Entregado');
       return;
     }
 
@@ -1548,8 +1630,8 @@ export class MapaPageComponent implements OnInit, OnDestroy {
 
         orderIds.forEach((orderId: string) => {
           const order = this.orders.find(o => o.id === orderId);
-          // Only revert orders that are SHIPPED (not DELIVERED or CANCELLED)
-          if (order && order.status === 'SHIPPED') {
+          // Revert all orders except CANCELLED (including DELIVERED, SHIPPED, etc.)
+          if (order && order.status !== 'CANCELLED') {
             this.orderService.updateOrderStatus(orderId, 'CONFIRMED').subscribe({
               next: () => {
                 updatedCount++;
@@ -1561,7 +1643,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
                 if (updatedCount + failedCount === orderIds.length) {
                   this.isRevertingTrip = false;
                   if (failedCount === 0) {
-                    this.toastService.success(`Reparto revertido. ${updatedCount} pedidos marcados como Confirmado`);
+                    this.toastService.success(`Reparto revertido. ${updatedCount} pedidos marcados como Asignado`);
                   } else {
                     this.toastService.warning(`Reparto revertido. ${updatedCount} pedidos actualizados, ${failedCount} fallaron`);
                   }
@@ -1585,7 +1667,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
               }
             });
           } else {
-            // Skip orders that are not SHIPPED
+            // Skip orders that are CANCELLED - don't revert them
             updatedCount++;
             if (updatedCount + failedCount === orderIds.length) {
               this.isRevertingTrip = false;
@@ -1625,8 +1707,8 @@ export class MapaPageComponent implements OnInit, OnDestroy {
           order.status = 'DELIVERED';
         }
 
-        // If route is optimized, notify next customer in the sequence
-        if (this.selectedDistribution?.optimized) {
+        // If route is optimized and email notifications enabled, notify next customer in the sequence
+        if (this.selectedDistribution?.optimized && this.sendEmailNotifications) {
           const currentIndex = this.orderLocations.findIndex(loc => loc.orderId === orderId);
           if (currentIndex !== -1 && currentIndex < this.orderLocations.length - 1) {
             // Notify the next customer in the route
@@ -1691,7 +1773,18 @@ export class MapaPageComponent implements OnInit, OnDestroy {
       this.distributionService.updateDistributionStatus(this.selectedDistribution.id, 'COMPLETED').subscribe({
         next: () => {
           this.toastService.success('Reparto completado automáticamente');
-          this.loadInitialData();
+          // Update local distribution status without reloading everything
+          this.selectedDistribution.status = 'COMPLETED';
+          this.selectedDistribution.statusLabel = this.getStatusLabel('COMPLETED');
+          this.selectedDistribution.statusColor = this.getStatusColor('COMPLETED');
+
+          // Update in distributions array
+          const distIndex = this.distributions.findIndex(d => d.id === this.selectedDistribution.id);
+          if (distIndex !== -1) {
+            this.distributions[distIndex].status = 'COMPLETED';
+            this.distributions[distIndex].statusLabel = this.getStatusLabel('COMPLETED');
+            this.distributions[distIndex].statusColor = this.getStatusColor('COMPLETED');
+          }
         },
         error: (error) => {
           console.error('Error completing distribution:', error);
@@ -1712,6 +1805,10 @@ export class MapaPageComponent implements OnInit, OnDestroy {
    * Check if order can be marked as delivered
    */
   canMarkAsDelivered(orderId: string): boolean {
+    // Only allow marking as delivered if distribution is IN_PROGRESS
+    if (!this.selectedDistribution || this.selectedDistribution.status !== 'IN_PROGRESS') {
+      return false;
+    }
     const status = this.getOrderStatus(orderId);
     return status === 'SHIPPED' || status === 'CONFIRMED';
   }
@@ -1720,8 +1817,47 @@ export class MapaPageComponent implements OnInit, OnDestroy {
    * Check if order can be marked as cancelled
    */
   canMarkAsCancelled(orderId: string): boolean {
+    // Only allow marking as cancelled if distribution is IN_PROGRESS
+    if (!this.selectedDistribution || this.selectedDistribution.status !== 'IN_PROGRESS') {
+      return false;
+    }
     const status = this.getOrderStatus(orderId);
     return status !== 'DELIVERED' && status !== 'CANCELLED';
+  }
+
+  /**
+   * Check if order can be reverted back to CONFIRMED
+   */
+  canRevertOrder(orderId: string): boolean {
+    const status = this.getOrderStatus(orderId);
+    return status === 'DELIVERED' || status === 'CANCELLED';
+  }
+
+  /**
+   * Revert order back to CONFIRMED status
+   */
+  revertOrderToConfirmed(orderId: string): void {
+    if (this.isUpdatingOrder) return;
+
+    this.isUpdatingOrder = true;
+
+    this.orderService.updateOrderStatus(orderId, 'CONFIRMED').subscribe({
+      next: () => {
+        this.isUpdatingOrder = false;
+        this.toastService.success('Pedido revertido a Asignado');
+
+        // Update local order list
+        const order = this.orders.find(o => o.id === orderId);
+        if (order) {
+          order.status = 'CONFIRMED';
+        }
+      },
+      error: (error) => {
+        this.isUpdatingOrder = false;
+        this.toastService.error('Error al revertir el pedido');
+        console.error('Error reverting order:', error);
+      }
+    });
   }
 
   /**

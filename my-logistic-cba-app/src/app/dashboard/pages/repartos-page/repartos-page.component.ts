@@ -57,6 +57,10 @@ export class RepartosPageComponent implements OnInit {
   isCancellingRepartos = false;
   isCompletingRepartos = false;
 
+  // Revertir repartos
+  showRevertRepartosModal = false;
+  isRevertingRepartos = false;
+
   // Optimización de repartos
   showOptimizeRepartosModal = false;
   isOptimizingRepartos = false;
@@ -604,6 +608,99 @@ export class RepartosPageComponent implements OnInit {
       this.isOptimizingRepartos = false;
       this.toastService.success(`${totalRepartos} reparto(s) optimizado(s) exitosamente`);
       this.closeOptimizeRepartosModal();
+      this.selectedRepartos = [];
+      this.loadInitialData();
+    }
+  }
+
+  // Revertir repartos a estado PLANNED
+  openRevertRepartosModal(): void {
+    if (this.selectedRepartos.length === 0) {
+      this.toastService.error('Debes seleccionar al menos un reparto');
+      return;
+    }
+    this.showRevertRepartosModal = true;
+  }
+
+  closeRevertRepartosModal(): void {
+    this.showRevertRepartosModal = false;
+  }
+
+  revertRepartos(): void {
+    if (this.selectedRepartos.length === 0) {
+      this.toastService.error('No hay repartos seleccionados');
+      return;
+    }
+
+    this.isRevertingRepartos = true;
+    let processedCount = 0;
+    const totalRepartos = this.selectedRepartos.length;
+
+    this.selectedRepartos.forEach(repartoId => {
+      const reparto = this.repartos.find(r => r.id === repartoId);
+      if (!reparto) {
+        processedCount++;
+        return;
+      }
+
+      // Revertir el reparto a PLANNED
+      this.distributionService.updateDistributionStatus(repartoId, 'PLANNED').subscribe({
+        next: () => {
+          // Cambiar todos los pedidos que estén en SHIPPED a CONFIRMED
+          const orderIds = reparto.orderIds || [];
+          let ordersProcessed = 0;
+
+          if (orderIds.length === 0) {
+            processedCount++;
+            this.checkRevertCompletion(processedCount, totalRepartos);
+            return;
+          }
+
+          orderIds.forEach((orderId: string) => {
+            const order = this.orders.find(o => o.id === orderId);
+            // Revertir todos los pedidos excepto CANCELLED
+            if (order && order.status !== 'CANCELLED') {
+              this.orderService.updateOrderStatus(orderId, 'CONFIRMED').subscribe({
+                next: () => {
+                  ordersProcessed++;
+                  if (ordersProcessed === orderIds.length) {
+                    processedCount++;
+                    this.checkRevertCompletion(processedCount, totalRepartos);
+                  }
+                },
+                error: (error) => {
+                  console.error('Error updating order status:', orderId, error);
+                  ordersProcessed++;
+                  if (ordersProcessed === orderIds.length) {
+                    processedCount++;
+                    this.checkRevertCompletion(processedCount, totalRepartos);
+                  }
+                }
+              });
+            } else {
+              // Saltar pedidos que son CANCELLED
+              ordersProcessed++;
+              if (ordersProcessed === orderIds.length) {
+                processedCount++;
+                this.checkRevertCompletion(processedCount, totalRepartos);
+              }
+            }
+          });
+        },
+        error: (error) => {
+          console.error('Error reverting distribution:', repartoId, error);
+          processedCount++;
+          this.checkRevertCompletion(processedCount, totalRepartos);
+        }
+      });
+    });
+  }
+
+  checkRevertCompletion(processedCount: number, totalRepartos: number): void {
+    if (processedCount === totalRepartos) {
+      this.isRevertingRepartos = false;
+      this.toastService.success(`${totalRepartos} reparto(s) revertido(s) a Asignado exitosamente`);
+      this.closeRevertRepartosModal();
       this.selectedRepartos = [];
       this.loadInitialData();
     }
