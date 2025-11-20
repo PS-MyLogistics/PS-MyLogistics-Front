@@ -1,0 +1,213 @@
+<div class="page-container">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h5 class="mb-1">Plan y Suscripción</h5>
+      <p class="text-muted mb-0">Administra tu plan y aumenta la capacidad de tu cuenta</p>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!isLoading && tenantInfo">
+    <!-- Current Plan Card -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <h6 class="mb-3">Plan Actual</h6>
+            <div class="d-flex align-items-center mb-3">
+              <span class="badge" [ngClass]="isPremium ? 'bg-success' : 'bg-secondary'" style="font-size: 1.2rem; padding: 0.5rem 1rem;">
+                {{ tenantInfo.planType }}
+              </span>
+            </div>
+            <p class="text-muted mb-0">
+              <strong>Empresa:</strong> {{ tenantInfo.name }}<br>
+              <strong>Estado:</strong>
+              <span [ngClass]="tenantInfo.active ? 'text-success' : 'text-danger'">
+                {{ tenantInfo.active ? 'Activo' : 'Inactivo' }}
+              </span>
+            </p>
+          </div>
+          <div class="col-md-6">
+            <h6 class="mb-3">Uso de Usuarios</h6>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span>{{ totalUsers }} / {{ tenantInfo.maxUsers }} usuarios</span>
+              <span class="badge" [ngClass]="userProgressBarClass">{{ userPercentage }}%</span>
+            </div>
+            <div class="progress" style="height: 25px;">
+              <div
+                class="progress-bar"
+                [ngClass]="userProgressBarClass"
+                role="progressbar"
+                [style.width.%]="userPercentage"
+                [attr.aria-valuenow]="userPercentage"
+                aria-valuemin="0"
+                aria-valuemax="100">
+                {{ userPercentage }}%
+              </div>
+            </div>
+            <p class="text-muted mt-2 mb-0" *ngIf="!canAddMoreUsers">
+              <small>Has alcanzado el límite de usuarios para tu plan actual</small>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plan Comparison Table -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="mb-0">Comparación de Planes</h6>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th style="width: 50%;">Característica</th>
+                <th class="text-center" style="width: 25%;">
+                  <div class="d-flex flex-column align-items-center">
+                    <span>FREE</span>
+                    <span class="badge bg-secondary mt-1">Gratis</span>
+                  </div>
+                </th>
+                <th class="text-center" style="width: 25%;">
+                  <div class="d-flex flex-column align-items-center">
+                    <span>PREMIUM</span>
+                    <span class="badge bg-success mt-1">$1.000/mes</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let feature of planFeatures">
+                <td>{{ feature.name }}</td>
+                <td class="text-center">
+                  <span *ngIf="feature.free === true" class="text-success">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                  </span>
+                  <span *ngIf="feature.free === false" class="text-danger">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                  </span>
+                  <span *ngIf="feature.free !== true && feature.free !== false">
+                    {{ feature.free }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span *ngIf="feature.premium === true" class="text-success">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                    </svg>
+                  </span>
+                  <span *ngIf="feature.premium === false" class="text-danger">
+                    <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                    </svg>
+                  </span>
+                  <span *ngIf="feature.premium !== true && feature.premium !== false">
+                    {{ feature.premium }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upgrade Section (Only show if FREE plan) -->
+    <div class="card" *ngIf="isFree">
+      <div class="card-header bg-success text-white">
+        <h6 class="mb-0">Actualizar a Premium</h6>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-warning" *ngIf="!canUpgrade">
+          Solo el propietario o administrador puede cambiar el plan de suscripción.
+        </div>
+
+        <div *ngIf="canUpgrade">
+          <h6 class="mb-3">Selecciona el período de pago</h6>
+          <p class="text-muted mb-4">Elige el plan que mejor se adapte a tus necesidades</p>
+
+          <!-- Payment Period Selection -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-4" *ngFor="let period of paymentPeriods">
+              <div
+                class="card payment-period-card"
+                [class.selected]="selectedPeriod === period.months"
+                (click)="selectedPeriod = period.months"
+                style="cursor: pointer;">
+                <div class="card-body text-center">
+                  <h5>{{ period.label }}</h5>
+                  <h4 class="text-success mb-0">${{ period.pricePerMonth }}/mes</h4>
+                  <p class="text-muted mt-2">
+                    <strong>Total: ${{ period.pricePerMonth * period.months }}</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary and Payment Button -->
+          <div class="row">
+            <div class="col-md-6 offset-md-3">
+              <div class="card bg-light">
+                <div class="card-body">
+                  <h6 class="mb-3">Resumen del Pago</h6>
+                  <div class="d-flex justify-content-between mb-2">
+                    <span>Plan:</span>
+                    <strong>Premium</strong>
+                  </div>
+                  <div class="d-flex justify-content-between mb-2">
+                    <span>Período:</span>
+                    <strong>{{ selectedPeriodInfo?.label }}</strong>
+                  </div>
+                  <hr>
+                  <div class="d-flex justify-content-between mb-3">
+                    <span><strong>Total a Pagar:</strong></span>
+                    <h5 class="text-success mb-0">${{ totalAmount }}</h5>
+                  </div>
+                  <button
+                    class="btn btn-success w-100"
+                    (click)="upgradeToPremium()"
+                    [disabled]="isProcessingPayment">
+                    <span *ngIf="!isProcessingPayment">
+                      <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: inline-block; vertical-align: middle;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                      </svg>
+                      Pagar con MercadoPago
+                    </span>
+                    <span *ngIf="isProcessingPayment">
+                      <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Procesando...
+                    </span>
+                  </button>
+                  <p class="text-muted text-center mt-3 mb-0">
+                    <small>Serás redirigido a MercadoPago para completar el pago de forma segura</small>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Premium Active Message -->
+    <div class="alert alert-success" *ngIf="isPremium">
+      <h6 class="alert-heading">¡Estás disfrutando de Premium!</h6>
+      <p class="mb-0">Tienes acceso a todas las funcionalidades avanzadas de la plataforma.</p>
+    </div>
+  </div>
+</div>

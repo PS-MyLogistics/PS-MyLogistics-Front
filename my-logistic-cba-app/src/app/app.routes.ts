@@ -17,6 +17,7 @@ import { ClientesPageComponent } from './dashboard/pages/clientes-page/clientes-
 import { VehiculosPageComponent } from './dashboard/pages/vehiculos-page/vehiculos-page.component';
 import { ZonasPageComponent } from './dashboard/pages/zonas-page/zonas-page.component';
 import { RepartosPageComponent } from './dashboard/pages/repartos-page/repartos-page.component';
+import { PlanPageComponent } from './dashboard/pages/plan-page/plan-page.component';
 import { authGuard } from './guards/auth.guard';
 import { noDealerGuard } from './guards/role.guard';
 
@@ -42,7 +43,8 @@ export const routes: Routes = [
       { path: 'usuarios', component: UsuariosPageComponent, canActivate: [noDealerGuard] },
       { path: 'productos', component: ProductosPageComponent, canActivate: [noDealerGuard] },
       { path: 'vehiculos', component: VehiculosPageComponent, canActivate: [noDealerGuard] },
-      { path: 'mapa', component: MapaPageComponent }
+      { path: 'mapa', component: MapaPageComponent },
+      { path: 'plan', component: PlanPageComponent, canActivate: [noDealerGuard] }
     ]
   },
   { path: '', redirectTo: '/login', pathMatch: 'full' },

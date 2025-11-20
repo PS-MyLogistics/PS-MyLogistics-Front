@@ -12,6 +12,7 @@ export enum TenantStatus {
 }
 
 export interface TenantInfo {
+  id?: string;
   name: string;
   contactEmail: string;
   contactPhone: string;
