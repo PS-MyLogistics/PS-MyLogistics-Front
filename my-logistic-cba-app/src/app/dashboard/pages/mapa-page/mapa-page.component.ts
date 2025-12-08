@@ -1501,8 +1501,8 @@ export class MapaPageComponent implements OnInit, OnDestroy {
           }
         },
         (error) => {
-          console.error('Error getting geolocation:', error);
-          this.toastService.warning('No se pudo obtener tu ubicación actual');
+          // Silenciar errores de geolocalización (timeout, denied, etc.)
+          console.debug('Geolocation not available:', error);
         },
         {
           enableHighAccuracy: true,

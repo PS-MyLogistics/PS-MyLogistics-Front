@@ -146,22 +146,9 @@ import { UserService } from '../services/user.service';
                   </div>
                 </div>
 
-                <!-- Recordarme y Olvidé contraseña -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                  <div class="form-check">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      id="rememberMe"
-                      name="rememberMe"
-                      [(ngModel)]="rememberMe"
-                      [disabled]="isLoading"
-                    />
-                    <label class="form-check-label" for="rememberMe">
-                      Recordarme
-                    </label>
-                  </div>
-                  <button 
+                <!-- Olvidé contraseña -->
+                <div class="text-end mb-4">
+                  <button
                     type="button"
                     class="btn btn-link p-0 text-decoration-none"
                     (click)="forgotPassword()"
@@ -381,7 +368,6 @@ export class LoginComponent {
   username: string = '';
   password: string = '';
   showPassword: boolean = false;
-  rememberMe: boolean = false;
   isLoading: boolean = false;
   errorMessage: string = '';
   errorType: 'error' | 'warning' | 'info' = 'error';
@@ -422,12 +408,6 @@ export class LoginComponent {
       next: (response) => {
         if (response.success) {
           this.successMessage = 'Inicio de sesión exitoso. Cargando información...';
-
-          // Guardar tenantName si "Recordarme" está activo
-          if (this.rememberMe) {
-            localStorage.setItem('tenantName', this.tenantName);
-            localStorage.setItem('username', this.username);
-          }
 
           // Obtener información del usuario actual (incluyendo roles)
           this.userService.getCurrentUser().subscribe({
@@ -511,16 +491,6 @@ export class LoginComponent {
   }
 
   ngOnInit(): void {
-    // Cargar datos guardados si existen
-    const savedTenant = localStorage.getItem('tenantName');
-    const savedUsername = localStorage.getItem('username');
-
-    if (savedTenant && savedUsername) {
-      this.tenantName = savedTenant;
-      this.username = savedUsername;
-      this.rememberMe = true;
-    }
-
     // Verificar si hay mensaje de sesión expirada
     this.route.queryParams.subscribe(params => {
       if (params['sessionExpired'] === 'true') {
