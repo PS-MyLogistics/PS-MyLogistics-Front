@@ -1220,7 +1220,6 @@ export class PedidosPageComponent implements OnInit {
     this.selectedOrders.forEach(orderId => {
       this.orderService.updateOrderStatus(orderId, 'CANCELLED').subscribe({
         next: (response) => {
-          console.log('Order cancelled successfully:', orderId, response);
           cancelledCount++;
           if (cancelledCount === totalOrders) {
             // Todos los pedidos fueron cancelados
@@ -1282,8 +1281,6 @@ export class PedidosPageComponent implements OnInit {
       startProgramDateTime: startDateTime,
       endProgramDateTime: endDateTime
     };
-
-    console.log('Creating distribution with request:', distributionRequest);
 
     this.distributionService.createDistribution(distributionRequest).subscribe({
       next: (distribution) => {

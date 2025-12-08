@@ -435,6 +435,89 @@ import { TimestampPipe } from '../../../pipes/timestamp.pipe';
       height: 1rem;
       border-width: 0.15em;
     }
+
+    .table-responsive {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      width: 100%;
+    }
+
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+      .d-flex.justify-content-between.align-items-center {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 1rem;
+      }
+
+      .d-flex.gap-2 {
+        flex-direction: column !important;
+        width: 100%;
+        gap: 0.5rem !important;
+      }
+
+      .d-flex.gap-2 .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .table {
+        min-width: 700px;
+      }
+
+      .modal-dialog {
+        margin: 0.5rem;
+        max-width: calc(100% - 1rem);
+      }
+
+      .modal-body {
+        padding: 1rem;
+      }
+
+      .card-body {
+        padding: 1rem;
+      }
+
+      .btn {
+        font-size: 13px;
+        padding: 6px 12px;
+      }
+
+      h5 {
+        font-size: 1.1rem;
+      }
+
+      .row.g-3 {
+        gap: 0.5rem !important;
+      }
+
+      .col-md-3, .col-md-4, .col-md-6 {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .table thead th,
+      .table tbody td {
+        padding: 8px;
+        font-size: 12px;
+      }
+
+      .btn-icon {
+        padding: 4px;
+      }
+
+      .badge {
+        font-size: 10px;
+        padding: 3px 8px;
+      }
+    }
   `]
 })
 export class VehiculosPageComponent implements OnInit {

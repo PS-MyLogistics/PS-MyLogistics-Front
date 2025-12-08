@@ -71,8 +71,9 @@ export class AuthService {
     }).pipe(
       tap(response => {
         if (response.success && response.token) {
-          // Guardar token en localStorage
+          // Guardar token y tenant name en localStorage
           localStorage.setItem('authToken', response.token);
+          localStorage.setItem('tenantName', loginData.tenantName);
           // Start automatic token refresh
           this.scheduleTokenRefresh();
         }
@@ -129,10 +130,6 @@ export class AuthService {
       username,
       tenantName
     };
-    console.log('AuthService - confirmResetPassword URL:', `${this.apiUrl}/auth/reset-password/confirm`);
-    console.log('AuthService - confirmResetPassword request body:', requestBody);
-    console.log('AuthService - Token length:', token.length);
-    console.log('AuthService - Username:', username, '| TenantName:', tenantName);
     return this.http.post<ResetPasswordConfirmResponse>(`${this.apiUrl}/auth/reset-password/confirm`, requestBody)
       .pipe(catchError(this.handleError));
   }
@@ -216,14 +213,11 @@ export class AuthService {
     // If token expires in less than 1 minute, refresh immediately
     const refreshTime = Math.max(timeUntilExpiration - 60000, 0);
 
-    console.log(`Token refresh scheduled in ${Math.round(refreshTime / 1000)} seconds`);
-
     this.refreshTokenSubscription = timer(refreshTime).pipe(
       switchMap(() => this.refreshToken())
     ).subscribe({
       next: (response) => {
         if (response.success && response.token) {
-          console.log('Token refreshed successfully');
           // Schedule next refresh after successful refresh
           this.scheduleTokenRefresh();
         }
@@ -318,7 +312,25 @@ export class AuthService {
           break;
         case 400:
           // Bad Request - puede tener mensaje personalizado del backend
-          errorMessage = error.error?.message || 'Datos inválidos. Verifica la información ingresada.';
+          if (error.url?.includes('/auth/login')) {
+            // Para login, error 400 puede ser tenant o credenciales incorrectas
+            const msg = error.error?.message || '';
+            if (msg.toLowerCase().includes('authentication failed') || msg.toLowerCase().includes('invalid credentials')) {
+              errorMessage = 'Usuario, contraseña o nombre de empresa incorrectos. Por favor verifica tus datos.';
+            } else {
+              errorMessage = msg || 'Usuario, contraseña o nombre de empresa incorrectos. Por favor verifica tus datos.';
+            }
+          } else if (error.url?.includes('/auth/register')) {
+            // Para registro, error 400 puede ser datos duplicados o inválidos
+            const msg = error.error?.message || '';
+            if (msg.toLowerCase().includes('authentication failed') || msg.toLowerCase().includes('already exists') || msg.toLowerCase().includes('duplicate')) {
+              errorMessage = 'El email del tenant, email del usuario, nombre de usuario o nombre de la empresa ya está en uso. Por favor intenta con otros datos.';
+            } else {
+              errorMessage = msg || 'Datos inválidos. Verifica la información ingresada.';
+            }
+          } else {
+            errorMessage = error.error?.message || 'Datos inválidos. Verifica la información ingresada.';
+          }
           break;
         case 401:
           // Unauthorized - contraseña inválida u otras autenticaciones fallidas
@@ -346,7 +358,14 @@ export class AuthService {
           errorMessage = error.error?.message || 'El usuario o empresa ya existe.';
           break;
         case 500:
-          errorMessage = 'Error interno del servidor. Intenta nuevamente más tarde.';
+          // Para login, error 500 generalmente significa credenciales incorrectas
+          if (error.url?.includes('/auth/login')) {
+            errorMessage = 'Usuario, contraseña o nombre de empresa incorrectos. Por favor verifica tus datos.';
+          } else if (error.url?.includes('/auth/register')) {
+            errorMessage = 'El email del tenant, email del usuario, nombre de usuario o nombre de la empresa ya está en uso. Por favor intenta con otros datos.';
+          } else {
+            errorMessage = error.error?.message || 'Error interno del servidor. Intenta nuevamente más tarde.';
+          }
           break;
         default:
           errorMessage = error.error?.message || `Error ${error.status}: ${error.statusText}`;

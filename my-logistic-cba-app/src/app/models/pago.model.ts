@@ -43,6 +43,7 @@ export interface FacturaResponse {
 export interface CrearFacturaRequest {
   tenantId: string;
   clienteId: string;
+  total: number;
 }
 
 export interface RegistrarPagoRequest {

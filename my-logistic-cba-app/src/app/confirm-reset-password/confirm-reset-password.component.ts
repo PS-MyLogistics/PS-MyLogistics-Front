@@ -444,13 +444,9 @@ export class ConfirmResetPasswordComponent implements OnInit {
     this.clearError();
     this.successMessage = '';
 
-    console.log('Enviando solicitud con token:', this.resetToken.trim().substring(0, 20) + '...');
-    console.log('Username:', this.username, 'TenantName:', this.tenantName);
-
     this.authService.confirmResetPassword(this.resetToken.trim(), this.newPassword, this.username, this.tenantName).subscribe({
       next: (response) => {
         this.isLoading = false;
-        console.log('Respuesta exitosa:', response);
 
         // Si la respuesta es null o success es true, consideramos que fue exitoso
         if (!response || response.success !== false) {

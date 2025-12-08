@@ -439,12 +439,25 @@ export class LoginComponent {
       error: (error) => {
         this.isLoading = false;
 
-        // Clasificar el tipo de error según el mensaje
-        const errorMsg = error.message || 'Error de conexión. Verifica tus credenciales.';
+        // Manejar diferentes tipos de errores
+        let errorMsg = '';
 
+        // Priorizar error.message ya que viene traducido del auth.service.ts
+        if (error.message) {
+          // Mensaje traducido del auth.service.ts
+          errorMsg = error.message;
+        } else if (error.status === 500 || error.status === 0) {
+          // Error interno del servidor o error de red - probablemente credenciales incorrectas
+          errorMsg = 'Usuario, contraseña o nombre de empresa incorrectos. Por favor verifica tus datos.';
+        } else {
+          // Fallback
+          errorMsg = 'Error al iniciar sesión. Verifica tus credenciales.';
+        }
+
+        // Clasificar el tipo de error según el mensaje
         if (errorMsg.includes('pendiente de verificación') || errorMsg.includes('pending verification')) {
           this.setError(errorMsg, 'warning');
-        } else if (errorMsg.includes('Contraseña incorrecta') || errorMsg.includes('Credenciales inválidas')) {
+        } else if (errorMsg.includes('Contraseña incorrecta') || errorMsg.includes('Credenciales inválidas') || errorMsg.includes('incorrectos')) {
           this.setError(errorMsg, 'error');
         } else if (errorMsg.includes('No se pudo conectar')) {
           this.setError(errorMsg, 'error');

@@ -92,7 +92,6 @@ import { Router } from '@angular/router';
                   <p><strong>5.2 Pagos:</strong></p>
                   <ul>
                     <li>Los pagos se procesan de forma segura a través de proveedores de pago terceros</li>
-                    <li>Las suscripciones se renuevan automáticamente a menos que se cancelen</li>
                     <li>No se realizan reembolsos por cancelaciones a mitad de período</li>
                   </ul>
                 </section>

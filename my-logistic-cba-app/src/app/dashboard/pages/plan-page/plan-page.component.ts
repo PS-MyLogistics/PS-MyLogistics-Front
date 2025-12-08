@@ -46,8 +46,7 @@ export class PlanPageComponent implements OnInit {
     { name: 'Optimización de rutas', free: false, premium: true },
     { name: 'Emails de próximo paquete', free: false, premium: true },
     { name: 'Emails promocionales', free: true, premium: true },
-    { name: 'Reportes básicos', free: true, premium: true },
-    { name: 'Soporte prioritario', free: false, premium: true }
+    { name: 'Reportes básicos', free: true, premium: true }
   ];
 
   // Payment periods
@@ -151,8 +150,6 @@ export class PlanPageComponent implements OnInit {
 
     // Verificar que el usuario esté autenticado
     const token = this.authService.getToken();
-    console.log('Token disponible:', token ? 'Sí' : 'No');
-    console.log('Token length:', token?.length);
 
     if (!token) {
       this.toastService.error('Tu sesión ha expirado. Por favor, cierra sesión e inicia sesión nuevamente.');
@@ -176,7 +173,8 @@ export class PlanPageComponent implements OnInit {
     const request: CrearFacturaYPreferenciaRequest = {
       requestFactura: {
         tenantId: tenantId,
-        clienteId: this.currentUser.id
+        clienteId: this.currentUser.id,
+        total: this.totalAmount
       },
       requestPago: {
         monto: this.totalAmount,
@@ -211,12 +209,18 @@ export class PlanPageComponent implements OnInit {
       error: (error) => {
         this.isProcessingPayment = false;
         console.error('Error creating payment:', error);
+        console.error('Error status:', error.status);
+        console.error('Error message:', error.error?.message);
 
         // Manejo de errores específicos
         if (error.status === 401) {
           this.toastService.error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
         } else if (error.status === 403) {
           this.toastService.error('No tienes permisos para realizar esta acción. Solo ADMIN u OWNER pueden actualizar el plan.');
+        } else if (error.status === 500) {
+          this.toastService.error('Error en el servidor al procesar el pago. Por favor, contacta a soporte.');
+        } else if (error.status === 0) {
+          this.toastService.error('No se pudo conectar con el servidor. Verifica tu conexión a internet.');
         } else if (error.error?.message) {
           this.toastService.error(error.error.message);
         } else {
@@ -242,7 +246,6 @@ export class PlanPageComponent implements OnInit {
     try {
       const payload = token.split('.')[1];
       const decoded = JSON.parse(atob(payload));
-      console.log('Decoded token:', decoded);
       // Buscar el tenantId en diferentes variantes posibles
       return decoded.tenantID || decoded.tenantId || decoded.tenant_id || decoded.tid || null;
     } catch (error) {

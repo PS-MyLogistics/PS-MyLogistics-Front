@@ -408,7 +408,6 @@ import { AuthService, RegisterOwnerRequest } from '../services/auth.service';
                 <p><strong>5.2 Pagos:</strong></p>
                 <ul>
                   <li>Los pagos se procesan de forma segura a través de proveedores de pago terceros</li>
-                  <li>Las suscripciones se renuevan automáticamente a menos que se cancelen</li>
                   <li>No se realizan reembolsos por cancelaciones a mitad de período</li>
                 </ul>
               </section>
@@ -1058,10 +1057,26 @@ export class RegisterComponent {
       error: (error) => {
         this.isLoading = false;
 
-        // Clasificar el tipo de error según el mensaje
-        const errorMsg = error.message || 'Error al registrar. Por favor intenta nuevamente.';
+        // Manejar diferentes tipos de errores
+        let errorMsg = '';
 
-        if (errorMsg.includes('ya existe') || errorMsg.includes('already exists')) {
+        // Priorizar error.message ya que viene traducido del auth.service.ts
+        if (error.message) {
+          // Mensaje traducido del auth.service.ts
+          errorMsg = error.message;
+        } else if (error.status === 400) {
+          // Bad Request - probablemente tenant o usuario ya existe, o datos inválidos
+          errorMsg = 'El email del tenant, email del usuario, nombre de usuario o nombre de la empresa ya está en uso. Por favor intenta con otros datos.';
+        } else if (error.status === 500 || error.status === 0) {
+          // Error interno del servidor o error de red
+          errorMsg = 'El email del tenant, email del usuario, nombre de usuario o nombre de la empresa ya está en uso. Por favor intenta con otros datos.';
+        } else {
+          // Fallback
+          errorMsg = 'Error al registrar. Por favor intenta nuevamente.';
+        }
+
+        // Clasificar el tipo de error según el mensaje
+        if (errorMsg.includes('ya existe') || errorMsg.includes('already exists') || errorMsg.includes('ya está en uso')) {
           this.setError(errorMsg, 'warning');
         } else if (errorMsg.includes('Datos inválidos') || errorMsg.includes('inválido')) {
           this.setError(errorMsg, 'error');

@@ -249,6 +249,39 @@ interface ProductoEnPedido {
         </button>
       </div>
     </div>
+
+    <!-- Modal Confirmación Cancelar -->
+    <div class="modal fade" [class.show]="showCancelModal" [style.display]="showCancelModal ? 'block' : 'none'" tabindex="-1">
+      <div class="modal-backdrop fade" [class.show]="showCancelModal" (click)="closeCancelModal()"></div>
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Cancelar Creación de Pedido</h5>
+            <button type="button" class="btn-close" (click)="closeCancelModal()"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-warning">
+              <svg class="me-2" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+              </svg>
+              <strong>Atención:</strong> Los cambios no guardados se perderán.
+            </div>
+            <p class="text-muted mb-0">¿Estás seguro de que deseas cancelar la creación del pedido?</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="closeCancelModal()">
+              Volver
+            </button>
+            <button type="button" class="btn btn-danger" (click)="confirmCancel()">
+              <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              Confirmar Cancelación
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   `,
   styles: [`
     .page-container {
@@ -593,6 +626,145 @@ interface ProductoEnPedido {
         flex: 1;
       }
     }
+
+    /* Modal styles */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1050;
+    }
+
+    .modal.show {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 1040;
+    }
+
+    .modal-dialog {
+      position: relative;
+      z-index: 1050;
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+    }
+
+    .modal-footer {
+      padding: 1.5rem;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    .btn-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #6b7280;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-close:hover {
+      color: #111827;
+    }
+
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .alert-warning {
+      background-color: #fef3c7;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+
+    .alert svg {
+      flex-shrink: 0;
+    }
+
+    .btn-secondary {
+      background-color: #6b7280;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background-color: #4b5563;
+    }
+
+    .btn-danger {
+      background-color: #dc2626;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background-color 0.2s;
+    }
+
+    .btn-danger:hover {
+      background-color: #b91c1c;
+    }
+
+    .text-muted {
+      color: #6b7280;
+    }
   `]
 })
 export class NuevoPedidoPageComponent implements OnInit {
@@ -634,6 +806,9 @@ export class NuevoPedidoPageComponent implements OnInit {
   isLoadingProducts = false;
   isLoadingCustomers = false;
   isCreatingOrder = false;
+
+  // Modal confirmación cancelar
+  showCancelModal = false;
 
   ngOnInit(): void {
     this.loadZones();
@@ -851,12 +1026,6 @@ export class NuevoPedidoPageComponent implements OnInit {
           customerCreationRequest: customerRequest
         };
 
-    // Debug: log what we're sending
-    console.log('Creando pedido con:', orderRequest);
-    if (!this.useExistingCustomer) {
-      console.log('Cliente nuevo - zoneId:', customerRequest.zoneId);
-    }
-
     this.orderService.createOrder(orderRequest).subscribe({
       next: (response) => {
         this.isCreatingOrder = false;
@@ -886,11 +1055,18 @@ export class NuevoPedidoPageComponent implements OnInit {
                        this.cliente.email;
 
     if (hasChanges) {
-      if (confirm('¿Estás seguro? Los cambios no guardados se perderán.')) {
-        this.router.navigate(['/dashboard/pedidos']);
-      }
+      this.showCancelModal = true;
     } else {
       this.router.navigate(['/dashboard/pedidos']);
     }
+  }
+
+  closeCancelModal(): void {
+    this.showCancelModal = false;
+  }
+
+  confirmCancel(): void {
+    this.showCancelModal = false;
+    this.router.navigate(['/dashboard/pedidos']);
   }
 }

@@ -72,6 +72,12 @@ export class ClientesPageComponent implements OnInit {
     message: ''
   };
 
+  // Modal confirmación cancelar crear
+  showCancelCreateModal = false;
+
+  // Modal confirmación cancelar editar
+  showCancelEditModal = false;
+
   newCustomer: CustomerCreationRequest = this.getEmptyCustomer();
 
   ngOnInit(): void {
@@ -220,6 +226,25 @@ export class ClientesPageComponent implements OnInit {
   }
 
   closeCreateCustomerModal(): void {
+    const hasChanges = this.newCustomer.name ||
+                       this.newCustomer.email ||
+                       this.newCustomer.phoneNumber ||
+                       this.newCustomer.address;
+
+    if (hasChanges) {
+      this.showCancelCreateModal = true;
+    } else {
+      this.showCreateModal = false;
+      this.resetForm();
+    }
+  }
+
+  closeCancelCreateModal(): void {
+    this.showCancelCreateModal = false;
+  }
+
+  confirmCancelCreate(): void {
+    this.showCancelCreateModal = false;
     this.showCreateModal = false;
     this.resetForm();
   }
@@ -317,6 +342,15 @@ export class ClientesPageComponent implements OnInit {
   }
 
   closeEditCustomerModal(): void {
+    this.showCancelEditModal = true;
+  }
+
+  closeCancelEditModal(): void {
+    this.showCancelEditModal = false;
+  }
+
+  confirmCancelEdit(): void {
+    this.showCancelEditModal = false;
     this.showEditModal = false;
     this.isEditMode = false;
     this.editingCustomerId = null;
@@ -420,18 +454,9 @@ export class ClientesPageComponent implements OnInit {
   }
 
   mergeCustomerData(): void {
-    console.log('🔄 Mergeando datos. Total clientes:', this.clientes.length);
-    console.log('🔄 Total clientes con pedido del backend:', this.clientesConUltimoPedido.length);
-
-    if (this.clientesConUltimoPedido.length > 0) {
-      console.log('📋 IDs de clientes del backend:', this.clientesConUltimoPedido.map(c => c.customerId));
-      console.log('📋 IDs de clientes del frontend:', this.clientes.map(c => c.id));
-    }
-
     this.clientes = this.clientes.map(cliente => {
       const customerWithOrder = this.clientesConUltimoPedido.find(c => c.customerId === cliente.id);
       if (customerWithOrder) {
-        console.log(`✅ Match encontrado para cliente: ${cliente.nombre} (ID: ${cliente.id})`, customerWithOrder);
         return {
           ...cliente,
           lastOrderDate: customerWithOrder.lastOrderDate,
@@ -453,8 +478,6 @@ export class ClientesPageComponent implements OnInit {
       };
     });
 
-    console.log('✅ Merge completado. Clientes con daysSinceLastOrder:',
-      this.clientes.filter(c => c.daysSinceLastOrder !== undefined).length);
     this.applyFilters();
   }
 

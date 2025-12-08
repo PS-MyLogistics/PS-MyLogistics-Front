@@ -226,7 +226,7 @@
           <button type="button" class="btn-close" (click)="closeCreateCustomerModal()"></button>
         </div>
         <div class="modal-body">
-          <form (ngSubmit)="createCustomer()" #createForm="ngForm">
+          <form id="createForm" (ngSubmit)="createCustomer()" #createForm="ngForm">
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label for="name" class="form-label">Nombre Completo *</label>
@@ -379,7 +379,7 @@
           <button type="button" class="btn btn-secondary" (click)="closeCreateCustomerModal()" [disabled]="isCreating">
             Cancelar
           </button>
-          <button type="button" class="btn btn-primary" (click)="createCustomer()" [disabled]="isCreating || !isFormValid()">
+          <button type="submit" form="createForm" class="btn btn-primary" [disabled]="isCreating || !isFormValid()">
             <span *ngIf="!isCreating">Crear Cliente</span>
             <span *ngIf="isCreating">
               <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
@@ -406,7 +406,7 @@
           <button type="button" class="btn-close" (click)="closeEditCustomerModal()"></button>
         </div>
         <div class="modal-body">
-          <form (ngSubmit)="saveEditCustomer()" #editForm="ngForm">
+          <form id="editForm" (ngSubmit)="saveEditCustomer()" #editForm="ngForm">
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label for="editName" class="form-label">Nombre Completo *</label>
@@ -573,7 +573,7 @@
           <button type="button" class="btn btn-secondary" (click)="closeEditCustomerModal()" [disabled]="isCreating">
             Cancelar
           </button>
-          <button type="submit" class="btn btn-primary" (click)="saveEditCustomer()" [disabled]="isCreating || !isEditFormValid()">
+          <button type="submit" form="editForm" class="btn btn-primary" [disabled]="isCreating || !isEditFormValid()">
             <span *ngIf="!isCreating">Guardar Cambios</span>
             <span *ngIf="isCreating">
               <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
@@ -691,6 +691,72 @@
               <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
               Enviando...
             </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Confirmación Cancelar Crear -->
+  <div class="modal fade" [class.show]="showCancelCreateModal" [style.display]="showCancelCreateModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showCancelCreateModal" (click)="closeCancelCreateModal()"></div>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Cancelar Creación de Cliente</h5>
+          <button type="button" class="btn-close" (click)="closeCancelCreateModal()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <svg class="me-2" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            <strong>Atención:</strong> Los cambios no guardados se perderán.
+          </div>
+          <p class="text-muted mb-0">¿Estás seguro de que deseas cancelar la creación del cliente?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeCancelCreateModal()">
+            Volver
+          </button>
+          <button type="button" class="btn btn-danger" (click)="confirmCancelCreate()">
+            <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Confirmar Cancelación
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Confirmación Cancelar Editar -->
+  <div class="modal fade" [class.show]="showCancelEditModal" [style.display]="showCancelEditModal ? 'block' : 'none'" tabindex="-1">
+    <div class="modal-backdrop fade" [class.show]="showCancelEditModal" (click)="closeCancelEditModal()"></div>
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Cancelar Edición de Cliente</h5>
+          <button type="button" class="btn-close" (click)="closeCancelEditModal()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning">
+            <svg class="me-2" width="20" height="20" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+            </svg>
+            <strong>Atención:</strong> Los cambios no guardados se perderán.
+          </div>
+          <p class="text-muted mb-0">¿Estás seguro de que deseas cancelar la edición del cliente?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeCancelEditModal()">
+            Volver
+          </button>
+          <button type="button" class="btn btn-danger" (click)="confirmCancelEdit()">
+            <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            Confirmar Cancelación
           </button>
         </div>
       </div>
