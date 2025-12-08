@@ -197,7 +197,7 @@ import { Router } from '@angular/router';
               <!-- Footer -->
               <div class="card-footer text-center bg-light py-3">
                 <button class="btn btn-primary btn-lg px-5" (click)="goBack()">
-                  Aceptar y Volver
+                  Volver
                 </button>
               </div>
             </div>

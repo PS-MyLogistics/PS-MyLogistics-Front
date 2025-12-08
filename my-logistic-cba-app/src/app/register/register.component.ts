@@ -292,7 +292,7 @@ import { AuthService, RegisterOwnerRequest } from '../services/auth.service';
                     [disabled]="isLoading"
                   />
                   <label class="form-check-label" for="acceptTerms">
-                    Acepto los <a routerLink="/terms" class="text-decoration-none">términos y condiciones</a> y la <a routerLink="/privacy" class="text-decoration-none">política de privacidad</a> <span class="text-danger">*</span>
+                    Acepto los <a href="#" (click)="openTermsModal($event)" class="text-decoration-none">términos y condiciones</a> y la <a href="#" (click)="openPrivacyModal($event)" class="text-decoration-none">política de privacidad</a> <span class="text-danger">*</span>
                   </label>
                 </div>
 
@@ -328,6 +328,347 @@ import { AuthService, RegisterOwnerRequest } from '../services/auth.service';
               <div class="card-footer text-center bg-light text-muted py-3">
                 <small>© 2025 My Logistic. Todos los derechos reservados.</small>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Términos y Condiciones -->
+      <div class="modal fade" [class.show]="showTermsModal" [style.display]="showTermsModal ? 'block' : 'none'" tabindex="-1">
+        <div class="modal-backdrop fade" [class.show]="showTermsModal" (click)="closeTermsModal()"></div>
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
+          <div class="modal-content">
+            <div class="modal-header bg-gradient text-white">
+              <h5 class="modal-title text-black">Términos y Condiciones</h5>
+              <button type="button" class="btn-close btn-close-white" (click)="closeTermsModal()"></button>
+            </div>
+            <div class="modal-body terms-content">
+              <p class="text-muted mb-4">
+                <strong>Última actualización:</strong> 08 de Noviembre de 2025
+              </p>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">1. Aceptación de los Términos</h5>
+                <p>
+                  Al acceder y utilizar My Logistic ("el Servicio"), usted acepta estar sujeto a estos Términos y Condiciones.
+                  Si no está de acuerdo con alguno de estos términos, no debe utilizar nuestro servicio.
+                </p>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">2. Descripción del Servicio</h5>
+                <p>
+                  My Logistic es una plataforma de gestión logística que permite a las empresas administrar sus operaciones de distribución,
+                  pedidos, usuarios y seguimiento en tiempo real.
+                </p>
+                <p>El servicio incluye, pero no se limita a:</p>
+                <ul>
+                  <li>Gestión de pedidos y entregas</li>
+                  <li>Seguimiento en tiempo real mediante mapas</li>
+                  <li>Administración de usuarios y roles</li>
+                  <li>Gestión de productos y catálogos</li>
+                  <li>Reportes y análisis de operaciones</li>
+                </ul>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">3. Registro y Cuenta de Usuario</h5>
+                <p><strong>3.1 Creación de Cuenta:</strong></p>
+                <ul>
+                  <li>Debe proporcionar información precisa y completa durante el registro</li>
+                  <li>Es responsable de mantener la confidencialidad de sus credenciales</li>
+                  <li>Debe ser mayor de 18 años para crear una cuenta</li>
+                </ul>
+                <p><strong>3.2 Verificación:</strong></p>
+                <ul>
+                  <li>Su cuenta debe ser verificada mediante correo electrónico antes de poder acceder al servicio completo</li>
+                  <li>Nos reservamos el derecho de solicitar documentación adicional para verificar su identidad</li>
+                </ul>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">4. Uso Aceptable</h5>
+                <p>Al utilizar el Servicio, usted se compromete a:</p>
+                <ul>
+                  <li>No utilizar el servicio para actividades ilegales o no autorizadas</li>
+                  <li>No intentar acceder sin autorización a sistemas o datos de otros usuarios</li>
+                  <li>No interferir con el funcionamiento normal del servicio</li>
+                  <li>No transmitir virus, malware o código malicioso</li>
+                  <li>Cumplir con todas las leyes y regulaciones aplicables</li>
+                </ul>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">5. Planes y Facturación</h5>
+                <p><strong>5.1 Planes de Servicio:</strong></p>
+                <ul>
+                  <li><strong>Plan FREE:</strong> Funcionalidades básicas con limitaciones en usuarios y operaciones</li>
+                  <li><strong>Planes Premium:</strong> Acceso completo con características avanzadas</li>
+                </ul>
+                <p><strong>5.2 Pagos:</strong></p>
+                <ul>
+                  <li>Los pagos se procesan de forma segura a través de proveedores de pago terceros</li>
+                  <li>Las suscripciones se renuevan automáticamente a menos que se cancelen</li>
+                  <li>No se realizan reembolsos por cancelaciones a mitad de período</li>
+                </ul>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">6. Propiedad Intelectual</h5>
+                <p>
+                  Todo el contenido, características y funcionalidades del Servicio son propiedad exclusiva de My Logistic
+                  y están protegidos por leyes de derechos de autor, marcas registradas y otras leyes de propiedad intelectual.
+                </p>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">7. Limitación de Responsabilidad</h5>
+                <p>
+                  My Logistic no será responsable por daños indirectos, incidentales, especiales, consecuentes o punitivos,
+                  incluyendo pérdida de beneficios, datos, uso, o cualquier otra pérdida intangible resultante de:
+                </p>
+                <ul>
+                  <li>El uso o la imposibilidad de usar el servicio</li>
+                  <li>Acceso no autorizado a sus datos</li>
+                  <li>Errores o interrupciones en el servicio</li>
+                  <li>Virus u otro código malicioso obtenido del servicio</li>
+                </ul>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">8. Modificaciones del Servicio</h5>
+                <p>
+                  Nos reservamos el derecho de modificar o descontinuar, temporal o permanentemente, el Servicio
+                  (o cualquier parte del mismo) con o sin previo aviso en cualquier momento.
+                </p>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">9. Terminación</h5>
+                <p>
+                  Podemos suspender o terminar su acceso al Servicio inmediatamente, sin previo aviso o responsabilidad,
+                  por cualquier motivo, incluyendo si usted incumple estos Términos y Condiciones.
+                </p>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">10. Ley Aplicable</h5>
+                <p>
+                  Estos Términos se regirán e interpretarán de acuerdo con las leyes de Argentina,
+                  sin dar efecto a ningún principio de conflictos de leyes.
+                </p>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">11. Cambios en los Términos</h5>
+                <p>
+                  Nos reservamos el derecho de actualizar o modificar estos Términos en cualquier momento.
+                  Le notificaremos sobre cualquier cambio mediante la publicación de los nuevos Términos en esta página
+                  y actualizando la fecha de "Última actualización".
+                </p>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">12. Contacto</h5>
+                <p>
+                  Si tiene alguna pregunta sobre estos Términos y Condiciones, puede contactarnos en:
+                </p>
+                <ul class="list-unstyled">
+                  <li><strong>Email:</strong> soporte&#64;mylogistic.com</li>
+                  <li><strong>Teléfono:</strong> +54 351 123-4567</li>
+                </ul>
+              </section>
+
+              <div class="alert alert-info">
+                <strong>Nota Importante:</strong> Al utilizar My Logistic, usted reconoce que ha leído,
+                entendido y acepta estar obligado por estos Términos y Condiciones.
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" (click)="closeTermsModal()">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Política de Privacidad -->
+      <div class="modal fade" [class.show]="showPrivacyModal" [style.display]="showPrivacyModal ? 'block' : 'none'" tabindex="-1">
+        <div class="modal-backdrop fade" [class.show]="showPrivacyModal" (click)="closePrivacyModal()"></div>
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl">
+          <div class="modal-content">
+            <div class="modal-header bg-gradient text-white">
+              <h5 class="modal-title text-black">Política de Privacidad</h5>
+              <button type="button" class="btn-close btn-close-white" (click)="closePrivacyModal()"></button>
+            </div>
+            <div class="modal-body terms-content">
+              <p class="text-muted mb-4">
+                <strong>Última actualización:</strong> 08 de Noviembre de 2025
+              </p>
+
+              <div class="alert alert-primary mb-4">
+                <strong>Resumen:</strong> En My Logistic respetamos su privacidad y nos comprometemos a proteger sus datos personales.
+                Esta política explica cómo recopilamos, usamos y protegemos su información.
+              </div>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">1. Información que Recopilamos</h5>
+
+                <p><strong>1.1 Información que usted nos proporciona:</strong></p>
+                <ul>
+                  <li><strong>Datos de cuenta:</strong> Nombre de usuario, correo electrónico, teléfono, contraseña</li>
+                  <li><strong>Información de la empresa:</strong> Nombre de la empresa, dirección, contacto</li>
+                  <li><strong>Datos de perfil:</strong> Dirección, ciudad, provincia</li>
+                  <li><strong>Información de pedidos:</strong> Productos, destinatarios, direcciones de entrega</li>
+                </ul>
+
+                <p><strong>1.2 Información recopilada automáticamente:</strong></p>
+                <ul>
+                  <li><strong>Datos de uso:</strong> Páginas visitadas, tiempo de navegación, acciones realizadas</li>
+                  <li><strong>Información del dispositivo:</strong> Tipo de navegador, sistema operativo, dirección IP</li>
+                  <li><strong>Datos de ubicación:</strong> Geolocalización para el seguimiento de entregas (con su consentimiento)</li>
+                  <li><strong>Cookies:</strong> Identificadores únicos para mejorar la experiencia del usuario</li>
+                </ul>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">2. Cómo Utilizamos su Información</h5>
+                <p>Utilizamos la información recopilada para:</p>
+                <ul>
+                  <li>Proporcionar y mantener nuestro servicio</li>
+                  <li>Procesar y gestionar pedidos y entregas</li>
+                  <li>Verificar su identidad y autenticar su acceso</li>
+                  <li>Enviar notificaciones sobre el estado de sus pedidos</li>
+                  <li>Mejorar y personalizar su experiencia de usuario</li>
+                  <li>Analizar el uso del servicio y detectar problemas técnicos</li>
+                  <li>Cumplir con obligaciones legales y regulatorias</li>
+                  <li>Prevenir fraudes y actividades no autorizadas</li>
+                  <li>Enviar comunicaciones de marketing (con su consentimiento)</li>
+                </ul>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">3. Compartir Información con Terceros</h5>
+                <p>No vendemos sus datos personales. Podemos compartir su información únicamente en los siguientes casos:</p>
+
+                <p><strong>3.1 Proveedores de servicios:</strong></p>
+                <ul>
+                  <li>Servicios de hosting y almacenamiento en la nube</li>
+                  <li>Procesadores de pagos</li>
+                  <li>Servicios de mensajería y notificaciones</li>
+                  <li>Proveedores de análisis y métricas</li>
+                </ul>
+
+                <p><strong>3.2 Requisitos legales:</strong></p>
+                <ul>
+                  <li>Cumplimiento de órdenes judiciales o requerimientos legales</li>
+                  <li>Protección de derechos, propiedad o seguridad de My Logistic</li>
+                  <li>Investigación de fraudes o violaciones de términos de servicio</li>
+                </ul>
+
+                <p><strong>3.3 Transferencias de negocio:</strong></p>
+                <ul>
+                  <li>En caso de fusión, adquisición o venta de activos, sus datos pueden transferirse</li>
+                </ul>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">4. Seguridad de los Datos</h5>
+                <p>Implementamos medidas de seguridad técnicas y organizativas para proteger su información:</p>
+                <ul>
+                  <li><strong>Encriptación:</strong> Todos los datos se transmiten mediante conexiones HTTPS seguras</li>
+                  <li><strong>Contraseñas:</strong> Se almacenan usando algoritmos de hash seguros (BCrypt)</li>
+                  <li><strong>Tokens de autenticación:</strong> JWT (JSON Web Tokens) con tiempo de expiración</li>
+                  <li><strong>Control de acceso:</strong> Acceso restringido según roles y permisos</li>
+                  <li><strong>Monitoreo:</strong> Detección continua de actividades sospechosas</li>
+                  <li><strong>Copias de seguridad:</strong> Backups regulares de la información</li>
+                </ul>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">5. Retención de Datos</h5>
+                <p>
+                  Conservamos su información personal durante el tiempo que sea necesario para cumplir con los propósitos
+                  descritos en esta política, a menos que la ley requiera o permita un período de retención más largo.
+                </p>
+                <ul>
+                  <li><strong>Cuentas activas:</strong> Mientras su cuenta esté activa</li>
+                  <li><strong>Cuentas eliminadas:</strong> Hasta 90 días después de la eliminación (para recuperación)</li>
+                  <li><strong>Datos de transacciones:</strong> Hasta 10 años (requisitos fiscales y legales)</li>
+                  <li><strong>Registros de acceso:</strong> Hasta 2 años (seguridad y auditoría)</li>
+                </ul>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">6. Sus Derechos</h5>
+                <p>Usted tiene los siguientes derechos sobre sus datos personales:</p>
+                <ul>
+                  <li><strong>Acceso:</strong> Solicitar una copia de sus datos personales</li>
+                  <li><strong>Rectificación:</strong> Corregir datos inexactos o incompletos</li>
+                  <li><strong>Eliminación:</strong> Solicitar la eliminación de sus datos ("derecho al olvido")</li>
+                  <li><strong>Portabilidad:</strong> Recibir sus datos en un formato estructurado y legible</li>
+                  <li><strong>Oposición:</strong> Oponerse al procesamiento de sus datos para ciertos propósitos</li>
+                  <li><strong>Limitación:</strong> Solicitar la limitación del procesamiento de sus datos</li>
+                  <li><strong>Revocación del consentimiento:</strong> Retirar su consentimiento en cualquier momento</li>
+                </ul>
+                <p>Para ejercer estos derechos, contáctenos en: <strong>privacidad&#64;mylogistic.com</strong></p>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">7. Cookies y Tecnologías Similares</h5>
+                <p>Utilizamos cookies y tecnologías similares para:</p>
+                <ul>
+                  <li><strong>Cookies esenciales:</strong> Necesarias para el funcionamiento del servicio</li>
+                  <li><strong>Cookies de rendimiento:</strong> Para analizar el uso y mejorar la experiencia</li>
+                  <li><strong>Cookies de funcionalidad:</strong> Para recordar sus preferencias</li>
+                  <li><strong>Cookies de marketing:</strong> Para personalizar anuncios (con su consentimiento)</li>
+                </ul>
+                <p>Puede gestionar las preferencias de cookies desde la configuración de su navegador.</p>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">8. Privacidad de Menores</h5>
+                <p>
+                  Nuestro servicio no está dirigido a menores de 18 años. No recopilamos intencionalmente información
+                  de menores. Si descubrimos que hemos recopilado datos de un menor, los eliminaremos inmediatamente.
+                </p>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">9. Transferencias Internacionales</h5>
+                <p>
+                  Sus datos pueden ser transferidos y almacenados en servidores ubicados fuera de Argentina.
+                  Garantizamos que dichas transferencias cumplan con las leyes de protección de datos aplicables.
+                </p>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">10. Cambios en esta Política</h5>
+                <p>
+                  Podemos actualizar esta Política de Privacidad ocasionalmente. Le notificaremos sobre cambios significativos
+                  mediante un aviso en nuestro servicio o por correo electrónico. La fecha de "Última actualización" se modificará
+                  en la parte superior de esta política.
+                </p>
+              </section>
+
+              <section class="mb-4">
+                <h5 class="text-primary mb-3">11. Contacto</h5>
+                <p>
+                  Si tiene preguntas sobre esta Política de Privacidad o desea ejercer sus derechos, puede contactarnos:
+                </p>
+                <ul class="list-unstyled">
+                  <li><strong>Email:</strong> privacidad&#64;mylogistic.com</li>
+                  <li><strong>Correo postal:</strong> Av. Principal 123, Córdoba, Argentina</li>
+                  <li><strong>Teléfono:</strong> +54 351 123-4567</li>
+                </ul>
+              </section>
+
+              <div class="alert alert-success">
+                <strong>Su confianza es importante para nosotros.</strong> Nos comprometemos a proteger su privacidad
+                y manejar sus datos de manera responsable y transparente.
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary" (click)="closePrivacyModal()">Cerrar</button>
             </div>
           </div>
         </div>
@@ -514,6 +855,83 @@ import { AuthService, RegisterOwnerRequest } from '../services/auth.service';
       margin-top: 2px;
     }
 
+    /* Estilos para modales */
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1050;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .modal.show {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1040;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-dialog {
+      position: relative;
+      z-index: 1050;
+      max-height: 90vh;
+    }
+
+    .modal-content {
+      border-radius: 1rem;
+      border: none;
+      box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-header {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+    }
+
+    .modal-body {
+      max-height: calc(90vh - 200px);
+      overflow-y: auto;
+      padding: 2rem;
+    }
+
+    .modal-footer {
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      padding: 1rem 1.5rem;
+    }
+
+    .terms-content section {
+      margin-bottom: 2rem;
+    }
+
+    .terms-content h5 {
+      font-weight: 600;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .terms-content ul {
+      padding-left: 1.5rem;
+    }
+
+    .terms-content ul li {
+      margin-bottom: 0.5rem;
+    }
+
+    .btn-close-white {
+      filter: invert(1) grayscale(100%) brightness(200%);
+    }
+
     @media (max-width: 768px) {
       .logo-circle-small {
         width: 200px;
@@ -532,6 +950,15 @@ import { AuthService, RegisterOwnerRequest } from '../services/auth.service';
 
       .register-wrapper {
         padding: 10px 0;
+      }
+
+      .modal-dialog {
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+      }
+
+      .modal-body {
+        padding: 1.5rem;
       }
     }
   `]
@@ -560,6 +987,10 @@ export class RegisterComponent {
   errorMessage: string = '';
   errorType: 'error' | 'warning' | 'info' = 'error';
   successMessage: string = '';
+
+  // Modales para términos y privacidad
+  showTermsModal: boolean = false;
+  showPrivacyModal: boolean = false;
 
   togglePassword(): void {
     this.showPassword = !this.showPassword;
@@ -662,5 +1093,23 @@ export class RegisterComponent {
 
   goToLogin(): void {
     this.router.navigate(['/login']);
+  }
+
+  openTermsModal(event: Event): void {
+    event.preventDefault();
+    this.showTermsModal = true;
+  }
+
+  closeTermsModal(): void {
+    this.showTermsModal = false;
+  }
+
+  openPrivacyModal(event: Event): void {
+    event.preventDefault();
+    this.showPrivacyModal = true;
+  }
+
+  closePrivacyModal(): void {
+    this.showPrivacyModal = false;
   }
 }

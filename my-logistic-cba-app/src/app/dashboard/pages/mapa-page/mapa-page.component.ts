@@ -1081,6 +1081,8 @@ export class MapaPageComponent implements OnInit, OnDestroy {
               customerName: customer.name,
               address: customer.address,
               city: customer.city,
+              state: customer.state,
+              country: customer.country,
               total: order.totalAmount,
               latitude: customer.latitude,
               longitude: customer.longitude
@@ -1429,7 +1431,10 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   }
 
   openGoogleMaps(location: any): void {
-    const url = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`;
+    // Usar la dirección completa en lugar de coordenadas para mayor precisión
+    const fullAddress = `${location.address}, ${location.city}, ${location.state}, ${location.country}`;
+    const encodedAddress = encodeURIComponent(fullAddress);
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
     window.open(url, '_blank');
   }
 
