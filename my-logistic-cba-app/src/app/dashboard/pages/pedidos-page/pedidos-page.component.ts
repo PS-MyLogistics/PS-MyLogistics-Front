@@ -9,11 +9,13 @@ import { CustomerService } from '../../../services/customer.service';
 import { AuthService } from '../../../services/auth.service';
 import { UserService } from '../../../services/user.service';
 import { DistributionService } from '../../../services/distribution.service';
+import { TenantService } from '../../../services/tenant.service';
 import { Order } from '../../../models/order.model';
 import { Role, UserDto } from '../../../models/user.model';
 import { ZoneResponse } from '../../../models/zone.model';
 import { Customer } from '../../../models/customer.model';
 import { DistributionCreationRequest } from '../../../models/distribution.model';
+import { TenantInfo, PlanType } from '../../../models/tenant.model';
 
 @Component({
   selector: 'app-pedidos-page',
@@ -250,22 +252,31 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Fecha y Hora de Inicio</label>
+                <label class="form-label" [class.text-muted]="!isPremiumPlan">
+                  Fecha y Hora de Inicio
+                  <span *ngIf="!isPremiumPlan" class="badge bg-warning text-dark ms-1">Premium</span>
+                </label>
                 <input
                   type="datetime-local"
                   class="form-control"
                   [(ngModel)]="distributionStartDate"
                   [ngModelOptions]="{standalone: true}"
+                  [disabled]="!isPremiumPlan"
                 >
+                <small class="text-warning" *ngIf="!isPremiumPlan">Las fechas de inicio y fin requieren plan Premium</small>
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Fecha y Hora de Fin</label>
+                <label class="form-label" [class.text-muted]="!isPremiumPlan">
+                  Fecha y Hora de Fin
+                  <span *ngIf="!isPremiumPlan" class="badge bg-warning text-dark ms-1">Premium</span>
+                </label>
                 <input
                   type="datetime-local"
                   class="form-control"
                   [(ngModel)]="distributionEndDate"
                   [ngModelOptions]="{standalone: true}"
+                  [disabled]="!isPremiumPlan"
                 >
               </div>
 
@@ -277,15 +288,18 @@ import { DistributionCreationRequest } from '../../../models/distribution.model'
                     id="optimizeCheckbox"
                     [(ngModel)]="optimizeAfterCreation"
                     [ngModelOptions]="{standalone: true}"
+                    [disabled]="!isPremiumPlan"
                   >
-                  <label class="form-check-label" for="optimizeCheckbox">
+                  <label class="form-check-label" for="optimizeCheckbox" [class.text-muted]="!isPremiumPlan">
                     <svg class="me-1" width="14" height="14" fill="currentColor" viewBox="0 0 20 20" style="vertical-align: middle;">
                       <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd"/>
                     </svg>
                     Optimizar ruta automáticamente después de crear el reparto
+                    <span *ngIf="!isPremiumPlan" class="badge bg-warning text-dark ms-2">Premium</span>
                   </label>
                 </div>
-                <small class="text-muted">La optimización calculará la ruta más eficiente para los pedidos seleccionados</small>
+                <small class="text-muted" *ngIf="isPremiumPlan">La optimización calculará la ruta más eficiente para los pedidos seleccionados</small>
+                <small class="text-warning" *ngIf="!isPremiumPlan">La optimización de rutas es una característica exclusiva de planes Premium</small>
               </div>
 
               <div class="alert alert-info">
@@ -833,6 +847,7 @@ export class PedidosPageComponent implements OnInit {
   private authService = inject(AuthService);
   private userService = inject(UserService);
   private distributionService = inject(DistributionService);
+  private tenantService = inject(TenantService);
 
   pedidos: Order[] = [];
   pedidosFiltrados: Order[] = [];
@@ -840,6 +855,10 @@ export class PedidosPageComponent implements OnInit {
   zones: ZoneResponse[] = [];
   isDealer = false;
   dealers: UserDto[] = [];
+
+  // Plan information
+  tenantInfo: TenantInfo | null = null;
+  isPremiumPlan = false;
 
   // Filtros
   searchTerm: string = '';
@@ -868,9 +887,24 @@ export class PedidosPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.isDealer = this.authService.hasRole(Role.DEALER);
+    this.loadTenantInfo();
     this.loadZones();
     this.loadDealers();
     this.loadOrders();
+  }
+
+  // Cargar información del tenant
+  loadTenantInfo(): void {
+    this.tenantService.getTenantInfo().subscribe({
+      next: (info) => {
+        this.tenantInfo = info;
+        this.isPremiumPlan = info.planType === PlanType.PREMIUM || info.planType === PlanType.ENTERPRISE;
+      },
+      error: (error) => {
+        console.error('Error loading tenant info:', error);
+        this.isPremiumPlan = false; // Por defecto, asumir plan FREE
+      }
+    });
   }
 
   loadDealers(): void {

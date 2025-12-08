@@ -7,14 +7,16 @@
     </div>
     <div class="d-flex gap-2" *ngIf="!isDealer">
       <button
-        class="btn btn-info"
+        class="btn btn-info position-relative"
         [disabled]="!canOptimizeSelectedRepartos()"
         (click)="openOptimizeRepartosModal()"
+        [title]="!isPremiumPlan ? 'Característica exclusiva de planes Premium' : ''"
       >
         <svg class="me-2" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
         </svg>
         Optimizar Reparto{{ selectedRepartos.length > 0 ? ' (' + selectedRepartos.length + ')' : '' }}
+        <span *ngIf="!isPremiumPlan" class="badge bg-warning text-dark ms-1">Premium</span>
       </button>
       <button
         class="btn btn-danger"

@@ -7,9 +7,11 @@ import { UserService } from '../../../services/user.service';
 import { OrderService } from '../../../services/order.service';
 import { ToastService } from '../../../services/toast.service';
 import { AuthService } from '../../../services/auth.service';
+import { TenantService } from '../../../services/tenant.service';
 import { DistributionResponse } from '../../../models/distribution.model';
 import { UserDto, Role } from '../../../models/user.model';
 import { Order } from '../../../models/order.model';
+import { TenantInfo, PlanType } from '../../../models/tenant.model';
 
 @Component({
   selector: 'app-repartos-page',
@@ -25,6 +27,7 @@ export class RepartosPageComponent implements OnInit {
   private orderService = inject(OrderService);
   private toastService = inject(ToastService);
   private authService = inject(AuthService);
+  private tenantService = inject(TenantService);
 
   repartos: any[] = [];
   repartosFiltrados: any[] = [];
@@ -33,6 +36,10 @@ export class RepartosPageComponent implements OnInit {
   orders: Order[] = [];
   isDealer = false;
   currentDealerId: string | null = null;
+
+  // Plan information
+  tenantInfo: TenantInfo | null = null;
+  isPremiumPlan = false;
 
   // Filtros
   searchTerm: string = '';
@@ -69,6 +76,9 @@ export class RepartosPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.isDealer = this.authService.hasRole(Role.DEALER);
+
+    // Cargar información del tenant para verificar el plan
+    this.loadTenantInfo();
 
     // Si es dealer, obtener su ID primero
     if (this.isDealer) {
@@ -552,6 +562,9 @@ export class RepartosPageComponent implements OnInit {
 
   // Métodos para optimización de repartos
   canOptimizeSelectedRepartos(): boolean {
+    // Verificar si es plan premium
+    if (!this.isPremiumPlan) return false;
+
     if (this.selectedRepartos.length === 0) return false;
 
     return this.selectedRepartos.every(repartoId => {
@@ -704,5 +717,19 @@ export class RepartosPageComponent implements OnInit {
       this.selectedRepartos = [];
       this.loadInitialData();
     }
+  }
+
+  // Cargar información del tenant
+  loadTenantInfo(): void {
+    this.tenantService.getTenantInfo().subscribe({
+      next: (info) => {
+        this.tenantInfo = info;
+        this.isPremiumPlan = info.planType === PlanType.PREMIUM || info.planType === PlanType.ENTERPRISE;
+      },
+      error: (error) => {
+        console.error('Error loading tenant info:', error);
+        this.isPremiumPlan = false; // Por defecto, asumir plan FREE
+      }
+    });
   }
 }
