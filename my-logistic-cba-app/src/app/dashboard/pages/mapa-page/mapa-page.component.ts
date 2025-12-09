@@ -56,7 +56,7 @@ import { UserDto, Role } from '../../../models/user.model';
                 <option value="CANCELLED">Cancelado</option>
               </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-3" *ngIf="!isDealer">
               <label class="form-label">Repartidor</label>
               <select class="form-select" [(ngModel)]="filtroDealer" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
                 <option value="">Todos</option>
@@ -339,7 +339,7 @@ import { UserDto, Role } from '../../../models/user.model';
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Detalle del Pedido #{{ selectedOrderDetail?.orderNumber }}</h5>
-              <button type="button" class="btn-close" (click)="closeOrderDetail()">
+              <button type="button" class="btn-close" (click)="closeOrderDetail()" aria-label="Cerrar detalle">
                 <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>

@@ -187,7 +187,7 @@ import { Role } from '../models/user.model';
                 </svg>
                 Cerrar Sesión
               </h5>
-              <button type="button" class="btn-close" (click)="cancelLogout()"></button>
+              <button type="button" class="btn-close" (click)="cancelLogout()" aria-label="Cerrar modal"></button>
             </div>
             <div class="modal-body">
               <p class="mb-3">¿Estás seguro que deseas cerrar sesión?</p>
@@ -809,7 +809,11 @@ export class DashboardComponent implements OnInit {
 
   confirmLogout(): void {
     this.showLogoutModal = false;
-    localStorage.clear();
+    // Limpiar solo datos de autenticación, no todo el localStorage
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('tenantName');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userRoles');
     this.router.navigate(['/login']);
   }
 }

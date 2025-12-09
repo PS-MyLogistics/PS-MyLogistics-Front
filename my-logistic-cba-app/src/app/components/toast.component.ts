@@ -1,7 +1,8 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ToastService, Toast } from '../services/toast.service';
-import { Subscription } from 'rxjs';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-toast',
@@ -158,28 +159,48 @@ import { Subscription } from 'rxjs';
 })
 export class ToastComponent implements OnInit, OnDestroy {
   toasts: Toast[] = [];
-  private subscription?: Subscription;
+  private destroy$ = new Subject<void>();
+  private timeoutMap = new Map<number, any>();
 
   constructor(private toastService: ToastService) {}
 
   ngOnInit() {
-    this.subscription = this.toastService.toasts$.subscribe(toast => {
-      this.toasts.push(toast);
+    this.toastService.toasts$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(toast => {
+        this.toasts.push(toast);
 
-      // Auto-remove after duration
-      if (toast.duration && toast.duration > 0) {
-        setTimeout(() => {
-          this.removeToast(toast.id);
-        }, toast.duration);
-      }
-    });
+        // Auto-remove after duration con cleanup apropiado
+        if (toast.duration && toast.duration > 0) {
+          const timeoutId = setTimeout(() => {
+            this.removeToast(toast.id);
+            this.timeoutMap.delete(toast.id);
+          }, toast.duration);
+
+          // Guardar referencia al timeout para poder cancelarlo después
+          this.timeoutMap.set(toast.id, timeoutId);
+        }
+      });
   }
 
   ngOnDestroy() {
-    this.subscription?.unsubscribe();
+    // Cancelar todos los timeouts pendientes
+    this.timeoutMap.forEach(timeoutId => clearTimeout(timeoutId));
+    this.timeoutMap.clear();
+
+    // Completar el subject para unsubscribe
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   removeToast(id: number) {
+    // Cancelar timeout si existe
+    const timeoutId = this.timeoutMap.get(id);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      this.timeoutMap.delete(id);
+    }
+
     this.toasts = this.toasts.filter(t => t.id !== id);
   }
 }

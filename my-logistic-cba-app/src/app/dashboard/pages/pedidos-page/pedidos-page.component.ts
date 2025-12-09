@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -16,6 +16,8 @@ import { ZoneResponse } from '../../../models/zone.model';
 import { Customer } from '../../../models/customer.model';
 import { DistributionCreationRequest } from '../../../models/distribution.model';
 import { TenantInfo, PlanType } from '../../../models/tenant.model';
+import { forkJoin, of, Subject } from 'rxjs';
+import { catchError, takeUntil } from 'rxjs/operators';
 
 @Component({
   selector: 'app-pedidos-page',
@@ -234,7 +236,7 @@ import { TenantInfo, PlanType } from '../../../models/tenant.model';
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Crear Nuevo Reparto</h5>
-              <button type="button" class="btn-close" (click)="closeCreateDistributionModal()"></button>
+              <button type="button" class="btn-close" (click)="closeCreateDistributionModal()" aria-label="Cerrar modal"></button>
             </div>
             <div class="modal-body">
               <p class="text-muted mb-3">
@@ -341,7 +343,7 @@ import { TenantInfo, PlanType } from '../../../models/tenant.model';
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Cancelar Pedidos</h5>
-              <button type="button" class="btn-close" (click)="closeCancelOrdersModal()"></button>
+              <button type="button" class="btn-close" (click)="closeCancelOrdersModal()" aria-label="Cerrar modal"></button>
             </div>
             <div class="modal-body">
               <div class="alert alert-warning">
@@ -388,7 +390,7 @@ import { TenantInfo, PlanType } from '../../../models/tenant.model';
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Detalles del Pedido #{{ selectedOrderDetails?.orderNumber }}</h5>
-              <button type="button" class="btn-close" (click)="closeDetailsModal()"></button>
+              <button type="button" class="btn-close" (click)="closeDetailsModal()" aria-label="Cerrar detalles"></button>
             </div>
             <div class="modal-body" *ngIf="selectedOrderDetails">
               <!-- Información General -->
@@ -838,7 +840,7 @@ import { TenantInfo, PlanType } from '../../../models/tenant.model';
     }
   `]
 })
-export class PedidosPageComponent implements OnInit {
+export class PedidosPageComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private orderService = inject(OrderService);
   private zoneService = inject(ZoneService);
@@ -848,6 +850,8 @@ export class PedidosPageComponent implements OnInit {
   private userService = inject(UserService);
   private distributionService = inject(DistributionService);
   private tenantService = inject(TenantService);
+
+  private destroy$ = new Subject<void>();
 
   pedidos: Order[] = [];
   pedidosFiltrados: Order[] = [];
@@ -895,61 +899,68 @@ export class PedidosPageComponent implements OnInit {
 
   // Cargar información del tenant
   loadTenantInfo(): void {
-    this.tenantService.getTenantInfo().subscribe({
-      next: (info) => {
-        this.tenantInfo = info;
-        this.isPremiumPlan = info.planType === PlanType.PREMIUM || info.planType === PlanType.ENTERPRISE;
-      },
-      error: (error) => {
-        console.error('Error loading tenant info:', error);
-        this.isPremiumPlan = false; // Por defecto, asumir plan FREE
-      }
-    });
+    this.tenantService.getTenantInfo()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (info) => {
+          this.tenantInfo = info;
+          this.isPremiumPlan = info.planType === PlanType.PREMIUM || info.planType === PlanType.ENTERPRISE;
+        },
+        error: (error) => {
+          console.error('Error loading tenant info:', error);
+          this.isPremiumPlan = false; // Por defecto, asumir plan FREE
+        }
+      });
   }
 
   loadDealers(): void {
-    this.userService.getAll().subscribe({
-      next: (users) => {
-        this.dealers = users.filter(user => user.roles.includes(Role.DEALER));
-      },
-      error: (error) => {
-        console.error('Error loading dealers:', error);
-        this.toastService.error('Error al cargar repartidores');
-      }
-    });
+    this.userService.getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (users) => {
+          this.dealers = users.filter(user => user.roles.includes(Role.DEALER));
+        },
+        error: (error) => {
+          console.error('Error loading dealers:', error);
+          this.toastService.error('Error al cargar repartidores');
+        }
+      });
   }
 
   loadZones(): void {
-    this.zoneService.getAll().subscribe({
-      next: (zones) => {
-        this.zones = zones;
-      },
-      error: (error) => {
-        console.error('Error loading zones:', error);
-        this.toastService.error('Error al cargar zonas');
-      }
-    });
+    this.zoneService.getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (zones) => {
+          this.zones = zones;
+        },
+        error: (error) => {
+          console.error('Error loading zones:', error);
+          this.toastService.error('Error al cargar zonas');
+        }
+      });
   }
 
   loadOrders(): void {
     this.isLoading = true;
-    this.orderService.getAll().subscribe({
-      next: (orders) => {
-        // Enriquecer con datos de clientes y zonas
-        this.enrichOrdersWithCustomerData(orders);
-      },
-      error: (error) => {
-        this.isLoading = false;
-        this.toastService.error('Error al cargar los pedidos');
-        console.error('Error loading orders:', error);
-      }
-    });
+    this.orderService.getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (orders) => {
+          // Enriquecer con datos de clientes y zonas
+          this.enrichOrdersWithCustomerData(orders);
+        },
+        error: (error) => {
+          this.isLoading = false;
+          this.toastService.error('Error al cargar los pedidos');
+          console.error('Error loading orders:', error);
+        }
+      });
   }
 
   enrichOrdersWithCustomerData(orders: Order[]): void {
     // Cargar los datos de todos los clientes únicos
     const customerIds = [...new Set(orders.map(order => order.customerId))];
-    let processedCount = 0;
 
     if (customerIds.length === 0) {
       this.pedidos = orders;
@@ -959,42 +970,52 @@ export class PedidosPageComponent implements OnInit {
       return;
     }
 
-    // Cargar cada cliente
-    customerIds.forEach(customerId => {
-      this.customerService.getById(customerId).subscribe({
-        next: (customer) => {
-          // Buscar la zona del cliente
-          const zone = this.zones.find(z => z.id === customer.zoneId);
+    // Usar forkJoin para cargar todos los clientes en paralelo
+    const customerRequests = customerIds.map(customerId =>
+      this.customerService.getById(customerId).pipe(
+        catchError(error => {
+          console.error('Error loading customer:', customerId, error);
+          return of(null); // Retornar null si falla para que forkJoin continúe
+        })
+      )
+    );
 
-          // Actualizar todos los pedidos de este cliente
-          orders.forEach(order => {
-            if (order.customerId === customerId) {
-              order.customerZoneId = customer.zoneId;
-              order.customerZoneName = customer.zoneName;
-              order.customerZoneColor = zone?.color || '#6366f1';
+    forkJoin(customerRequests)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (customers) => {
+          // Procesar todos los clientes que se cargaron exitosamente
+          customers.forEach((customer, index) => {
+            if (customer) {
+              const customerId = customerIds[index];
+              // Buscar la zona del cliente
+              const zone = this.zones.find(z => z.id === customer.zoneId);
+
+              // Actualizar todos los pedidos de este cliente
+              orders.forEach(order => {
+                if (order.customerId === customerId) {
+                  order.customerZoneId = customer.zoneId;
+                  order.customerZoneName = customer.zoneName;
+                  order.customerZoneColor = zone?.color || '#6366f1';
+                }
+              });
             }
           });
 
-          processedCount++;
-          if (processedCount === customerIds.length) {
-            // Todos los clientes fueron procesados
-            this.pedidos = orders;
-            this.isLoading = false;
-            this.applyFilters();
-          }
+          // Actualizar pedidos y aplicar filtros
+          this.pedidos = orders;
+          this.isLoading = false;
+          this.applyFilters();
         },
         error: (error) => {
-          console.error('Error loading customer:', customerId, error);
-          processedCount++;
-          if (processedCount === customerIds.length) {
-            // Todos los clientes fueron procesados (incluso con errores)
-            this.pedidos = orders;
-            this.isLoading = false;
-            this.applyFilters();
-          }
+          console.error('Error crítico cargando clientes:', error);
+          // Incluso si hay un error crítico, mostrar los pedidos sin enriquecer
+          this.pedidos = orders;
+          this.isLoading = false;
+          this.applyFilters();
+          this.toastService.show('Error cargando datos de clientes', 'error');
         }
       });
-    });
   }
 
   applyFilters(): void {
@@ -1320,5 +1341,10 @@ export class PedidosPageComponent implements OnInit {
         this.toastService.error('Error al crear el reparto');
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

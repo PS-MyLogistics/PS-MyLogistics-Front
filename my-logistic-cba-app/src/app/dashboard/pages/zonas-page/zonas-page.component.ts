@@ -155,7 +155,7 @@ import { TimestampPipe } from '../../../pipes/timestamp.pipe';
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">{{ isEditMode ? 'Editar Zona' : 'Crear Nueva Zona' }}</h5>
-              <button type="button" class="btn-close" (click)="closeZoneModal()"></button>
+              <button type="button" class="btn-close" (click)="closeZoneModal()" aria-label="Cerrar modal"></button>
             </div>
             <div class="modal-body">
               <!-- Formulario -->
@@ -250,7 +250,7 @@ import { TimestampPipe } from '../../../pipes/timestamp.pipe';
                 </svg>
                 Confirmar Eliminación
               </h5>
-              <button type="button" class="btn-close" (click)="closeDeleteModal()"></button>
+              <button type="button" class="btn-close" (click)="closeDeleteModal()" aria-label="Cerrar modal"></button>
             </div>
             <div class="modal-body">
               <p class="mb-2">¿Estás seguro de que deseas eliminar la zona <strong>{{ zoneToDelete?.name }}</strong>?</p>

@@ -171,7 +171,7 @@ import { VehicleResponse } from '../../../models/vehicle.model';
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">Crear Nuevo Usuario</h5>
-              <button type="button" class="btn-close" (click)="closeCreateUserModal()"></button>
+              <button type="button" class="btn-close" (click)="closeCreateUserModal()" aria-label="Cerrar modal"></button>
             </div>
             <div class="modal-body">
               <!-- Alertas -->
@@ -382,7 +382,7 @@ import { VehicleResponse } from '../../../models/vehicle.model';
                 </svg>
                 Confirmar Eliminación
               </h5>
-              <button type="button" class="btn-close" (click)="closeDeleteModal()"></button>
+              <button type="button" class="btn-close" (click)="closeDeleteModal()" aria-label="Cerrar modal"></button>
             </div>
             <div class="modal-body">
               <p class="mb-3">¿Estás seguro de que deseas eliminar al usuario <strong>{{ userToDelete?.nombre }}</strong>?</p>
@@ -423,7 +423,7 @@ import { VehicleResponse } from '../../../models/vehicle.model';
                 </svg>
                 Editar Usuario
               </h5>
-              <button type="button" class="btn-close" (click)="closeEditUserModal()"></button>
+              <button type="button" class="btn-close" (click)="closeEditUserModal()" aria-label="Cerrar modal"></button>
             </div>
             <div class="modal-body">
               <!-- Formulario de Edición -->

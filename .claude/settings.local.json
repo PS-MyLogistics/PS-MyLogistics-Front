@@ -8,7 +8,9 @@
       "Bash(npm install:*)",
       "Bash(taskkill:*)",
       "Bash(timeout:*)",
-      "Bash(ng build:*)"
+      "Bash(ng build:*)",
+      "Bash(find:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

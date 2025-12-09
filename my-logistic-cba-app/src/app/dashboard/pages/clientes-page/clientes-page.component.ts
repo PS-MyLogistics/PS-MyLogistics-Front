@@ -280,7 +280,9 @@ export class ClientesPageComponent implements OnInit {
         this.isCreating = false;
         this.toastService.success(`Cliente ${customer.name} creado exitosamente`);
         this.loadCustomers();
-        this.closeCreateCustomerModal();
+        // Cerrar modal directamente sin verificar cambios después de crear exitosamente
+        this.showCreateModal = false;
+        this.resetForm();
       },
       error: (error) => {
         this.isCreating = false;
@@ -384,7 +386,11 @@ export class ClientesPageComponent implements OnInit {
         this.isCreating = false;
         this.toastService.success(`Cliente ${customer.name} actualizado exitosamente`);
         this.loadCustomers();
-        this.closeEditCustomerModal();
+        // Cerrar modal directamente sin verificar cambios después de actualizar exitosamente
+        this.showEditModal = false;
+        this.isEditMode = false;
+        this.editingCustomerId = null;
+        this.editCustomer = this.getEmptyCustomer();
       },
       error: (error) => {
         this.isCreating = false;

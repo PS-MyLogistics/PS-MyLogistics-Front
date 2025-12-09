@@ -66,7 +66,7 @@
             placeholder="Buscar por repartidor, nº pedido..."
           >
         </div>
-        <div class="col-md-2">
+        <div class="col-md-2" *ngIf="!isDealer">
           <label class="form-label">Repartidor</label>
           <select class="form-select" [(ngModel)]="filtroDealer" [ngModelOptions]="{standalone: true}" (ngModelChange)="applyFilters()">
             <option value="">Todos</option>

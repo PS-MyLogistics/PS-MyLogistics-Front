@@ -257,7 +257,7 @@ interface ProductoEnPedido {
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Cancelar Creación de Pedido</h5>
-            <button type="button" class="btn-close" (click)="closeCancelModal()"></button>
+            <button type="button" class="btn-close" (click)="closeCancelModal()" aria-label="Cerrar modal"></button>
           </div>
           <div class="modal-body">
             <div class="alert alert-warning">

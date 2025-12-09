@@ -139,7 +139,7 @@ import { TimestampPipe } from '../../../pipes/timestamp.pipe';
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title">{{ isEditMode ? 'Editar Vehículo' : 'Crear Nuevo Vehículo' }}</h5>
-              <button type="button" class="btn-close" (click)="closeVehicleModal()"></button>
+              <button type="button" class="btn-close" (click)="closeVehicleModal()" aria-label="Cerrar modal"></button>
             </div>
             <div class="modal-body">
               <!-- Formulario -->
@@ -215,7 +215,7 @@ import { TimestampPipe } from '../../../pipes/timestamp.pipe';
                 </svg>
                 Confirmar Eliminación
               </h5>
-              <button type="button" class="btn-close" (click)="closeDeleteModal()"></button>
+              <button type="button" class="btn-close" (click)="closeDeleteModal()" aria-label="Cerrar modal"></button>
             </div>
             <div class="modal-body">
               <p class="mb-2">¿Estás seguro de que deseas eliminar el vehículo <strong>{{ vehicleToDelete?.plate }}</strong>?</p>
