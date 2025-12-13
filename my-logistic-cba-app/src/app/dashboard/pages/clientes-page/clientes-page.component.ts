@@ -82,8 +82,9 @@ export class ClientesPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.isDealer = this.authService.hasRole(Role.DEALER);
+
+    // Cargar zonas primero, luego clientes para asegurar que los colores estén disponibles
     this.loadZones();
-    this.loadCustomers();
 
     // Si hay un filtro de inactividad activo al cargar el componente, cargar los datos
     if (this.filtroInactividad) {
@@ -112,10 +113,14 @@ export class ClientesPageComponent implements OnInit {
     this.zoneService.getAll().subscribe({
       next: (zones) => {
         this.zones = zones;
+        // Cargar clientes solo después de que las zonas estén cargadas
+        this.loadCustomers();
       },
       error: (error) => {
         console.error('Error loading zones:', error);
         this.toastService.error('Error al cargar zonas');
+        // Cargar clientes de todas formas aunque falle la carga de zonas
+        this.loadCustomers();
       }
     });
   }

@@ -310,6 +310,13 @@ export class RepartosPageComponent implements OnInit {
     this.showDetailsModal = true;
   }
 
+  verEnMapa(reparto: any): void {
+    // Navegar a la página del mapa pasando el ID del reparto como parámetro
+    this.router.navigate(['/dashboard/mapa'], {
+      queryParams: { repartoId: reparto.id }
+    });
+  }
+
   closeDetailsModal(): void {
     this.showDetailsModal = false;
     this.selectedReparto = null;

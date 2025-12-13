@@ -1,6 +1,7 @@
 import { Component, OnInit, AfterViewInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import * as L from 'leaflet';
 import { DistributionService } from '../../../services/distribution.service';
 import { OrderService } from '../../../services/order.service';
@@ -830,6 +831,7 @@ import { UserDto, Role } from '../../../models/user.model';
   `]
 })
 export class MapaPageComponent implements OnInit, OnDestroy {
+  private route = inject(ActivatedRoute);
   private distributionService = inject(DistributionService);
   private orderService = inject(OrderService);
   private customerService = inject(CustomerService);
@@ -875,22 +877,27 @@ export class MapaPageComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.isDealer = this.authService.hasRole(Role.DEALER);
 
-    // Si es dealer, obtener su ID primero
-    if (this.isDealer) {
-      this.userService.getCurrentUser().subscribe({
-        next: (user) => {
-          this.currentDealerId = user.id;
-          this.loadInitialData();
-        },
-        error: (error) => {
-          console.error('Error loading current user:', error);
-          this.toastService.error('Error al cargar información del usuario');
-          this.loadInitialData(); // Continuar cargando datos aunque falle
-        }
-      });
-    } else {
-      this.loadInitialData();
-    }
+    // Leer el parámetro de query repartoId si existe
+    this.route.queryParams.subscribe(params => {
+      const repartoId = params['repartoId'];
+
+      // Si es dealer, obtener su ID primero
+      if (this.isDealer) {
+        this.userService.getCurrentUser().subscribe({
+          next: (user) => {
+            this.currentDealerId = user.id;
+            this.loadInitialData(repartoId);
+          },
+          error: (error) => {
+            console.error('Error loading current user:', error);
+            this.toastService.error('Error al cargar información del usuario');
+            this.loadInitialData(repartoId); // Continuar cargando datos aunque falle
+          }
+        });
+      } else {
+        this.loadInitialData(repartoId);
+      }
+    });
   }
 
   get filteredDistributions(): any[] {
@@ -967,7 +974,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
     this.destroyMap();
   }
 
-  loadInitialData(): void {
+  loadInitialData(repartoId?: string): void {
     this.isLoading = true;
 
     let dealersLoaded = false;
@@ -979,7 +986,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
         this.dealers = users.filter(user => user.roles.some(role => role === 'DEALER'));
         dealersLoaded = true;
         if (ordersLoaded) {
-          this.loadDistributions();
+          this.loadDistributions(repartoId);
         }
       },
       error: (error) => {
@@ -995,7 +1002,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
         this.orders = orders;
         ordersLoaded = true;
         if (dealersLoaded) {
-          this.loadDistributions();
+          this.loadDistributions(repartoId);
         }
       },
       error: (error) => {
@@ -1006,7 +1013,7 @@ export class MapaPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadDistributions(): void {
+  loadDistributions(repartoId?: string): void {
     this.distributionService.getAllDistributions().subscribe({
       next: (distributions) => {
         this.distributions = distributions.map(dist => {
@@ -1021,6 +1028,18 @@ export class MapaPageComponent implements OnInit, OnDestroy {
             statusColor: this.getStatusColor(dist.status)
           };
         });
+
+        // Si se recibió un repartoId desde la URL, seleccionarlo automáticamente
+        if (repartoId) {
+          const reparto = this.distributions.find(d => d.id === repartoId);
+          if (reparto) {
+            this.selectedDistributionId = repartoId;
+            this.onDistributionChange();
+            this.toastService.info('Reparto cargado desde navegación');
+          } else {
+            this.toastService.warning('No se encontró el reparto seleccionado');
+          }
+        }
 
         this.isLoading = false;
       },
