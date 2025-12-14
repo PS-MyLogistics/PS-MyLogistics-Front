@@ -43,10 +43,9 @@ export class PlanPageComponent implements OnInit {
     { name: 'Gestión de pedidos', free: true, premium: true },
     { name: 'Gestión de productos', free: true, premium: true },
     { name: 'Repartos básicos', free: true, premium: true },
-    { name: 'Optimización de rutas', free: false, premium: true },
-    { name: 'Emails de próximo paquete', free: false, premium: true },
     { name: 'Emails promocionales', free: true, premium: true },
-    { name: 'Reportes básicos', free: true, premium: true }
+    { name: 'Optimización de rutas', free: false, premium: true },
+    { name: 'Emails de próximo paquete', free: false, premium: true }
   ];
 
   // Payment periods
